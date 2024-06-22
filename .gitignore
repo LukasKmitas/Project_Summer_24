@@ -1,0 +1,7 @@
+# Doxygen generated files
+html/
+latex/
+man/
+rtf/
+xml/
+Doxyfile.log
