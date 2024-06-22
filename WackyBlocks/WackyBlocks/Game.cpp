@@ -3,11 +3,10 @@
 
 
 Game::Game() :
-	m_window{ sf::VideoMode{ SCREEN_WIDTH, SCREEN_HEIGHT, 32U }, "SFML Game" },
-	m_exitGame{false} 
+	m_window{ sf::VideoMode{ SCREEN_WIDTH, SCREEN_HEIGHT, 32U }, "WackyBlocks" },
+	m_exitGame{false},
+	m_currentState{ GameState::MAIN_MENU }
 {
-	//setupFontAndText(); 
-	//setupSprite(); 
 }
 
 Game::~Game()
@@ -50,32 +49,77 @@ void Game::processEvents()
 		if (sf::Event::MouseMoved == newEvent.type)
 		{
 			sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
-			m_mainMenu.handleMouseHover(mousePos);
+			if (m_currentState == GameState::MAIN_MENU)
+			{
+				m_mainMenu.handleMouseHover(mousePos);
+			}
+			else if (m_currentState == GameState::OPTIONS)
+			{
+				m_options.handleMouseMove(mousePos);
+			}
 		}
 		if (sf::Event::MouseButtonPressed == newEvent.type)
 		{
+			sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
 			if (newEvent.mouseButton.button == sf::Mouse::Left)
 			{
-				sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
-				int clickedItem = m_mainMenu.handleClick(mousePos);
-				if (clickedItem != -1)
+				if (m_currentState == GameState::MAIN_MENU)
 				{
-					switch (clickedItem)
+					int clickedItem = m_mainMenu.handleClick(mousePos);
+					if (clickedItem != -1)
 					{
-					case 0:
-						// Start Game
-						break;
-					case 1:
-						// Level Editor
-						break;
-					case 2:
-						// Options
-						break;
-					case 3:
-						m_exitGame = true;
-						break;
-					default:
-						break;
+						SoundManager::getInstance().playSound("buttonClick");
+						switch (clickedItem)
+						{
+						case 0:
+							// Start Game
+							SoundManager::getInstance().stopMusic("MenuMusic");
+							break;
+						case 1:
+							// Level Editor
+							break;
+						case 2:
+							m_currentState = GameState::OPTIONS;
+							m_mainMenu.clearParticles();
+							break;
+						case 3:
+							m_exitGame = true;
+							break;
+						default:
+							break;
+						}
+					}
+				}
+				else if (m_currentState == GameState::OPTIONS)
+				{
+					m_options.handleMouseClick(mousePos);
+				}
+			}
+			if (newEvent.mouseButton.button == sf::Mouse::Right)
+			{
+				if (m_currentState == GameState::MAIN_MENU)
+				{
+					m_mainMenu.handleRightClick(mousePos);
+				}
+				else if (m_currentState == GameState::OPTIONS)
+				{
+					m_options.handleRightClick(mousePos);
+				}
+			}
+		}
+		if (sf::Event::MouseButtonReleased == newEvent.type)
+		{
+			if (newEvent.mouseButton.button == sf::Mouse::Left)
+			{
+				if (m_currentState == GameState::OPTIONS)
+				{
+					m_options.handleMouseRelease();
+
+					if (m_options.isBackButtonPressed())
+					{
+						m_options.reset();
+						m_options.clearParticles();
+						m_currentState = GameState::MAIN_MENU;
 					}
 				}
 			}
@@ -99,8 +143,12 @@ void Game::processKeys(sf::Event t_event)
 	}
 	if (sf::Keyboard::Return == t_event.key.code)
 	{
-		int selectedItem = m_mainMenu.getPressedItem();
-		switch (selectedItem)
+		int selectedScreen = m_mainMenu.getPressedItem();
+		if (selectedScreen != -1)
+		{
+			SoundManager::getInstance().playSound("buttonClick");
+		}
+		switch (selectedScreen)
 		{
 		case 0:
 			// Start Game
@@ -110,8 +158,11 @@ void Game::processKeys(sf::Event t_event)
 			break;
 		case 2:
 			// Options
+			m_currentState = GameState::OPTIONS;
+			m_mainMenu.clearParticles();
 			break;
 		case 3:
+			// Exit
 			m_exitGame = true;
 			break;
 		default:
@@ -126,40 +177,30 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		m_window.close();
 	}
+
+	if (m_currentState == GameState::MAIN_MENU)
+	{
+		m_mainMenu.update(t_deltaTime);
+	}
+	else if (m_currentState == GameState::OPTIONS)
+	{
+		m_options.update(t_deltaTime);
+	}
 }
 
 void Game::render()
 {
 	m_window.clear(sf::Color::Black);
 
-	m_mainMenu.render(m_window);
+	if (m_currentState == GameState::MAIN_MENU)
+	{
+		m_mainMenu.render(m_window);
+	}
+	else if (m_currentState == GameState::OPTIONS)
+	{
+		m_options.render(m_window);
+	}
 
 	m_window.display();
 }
 
-void Game::setupFontAndText()
-{
-	if (!m_ArialBlackfont.loadFromFile("ASSETS\\FONTS\\ariblk.ttf"))
-	{
-		std::cout << "problem loading arial black font" << std::endl;
-	}
-	m_welcomeMessage.setFont(m_ArialBlackfont);
-	m_welcomeMessage.setString("SFML Game");
-	m_welcomeMessage.setStyle(sf::Text::Underlined | sf::Text::Italic | sf::Text::Bold);
-	m_welcomeMessage.setPosition(40.0f, 40.0f);
-	m_welcomeMessage.setCharacterSize(80U);
-	m_welcomeMessage.setOutlineColor(sf::Color::Red);
-	m_welcomeMessage.setFillColor(sf::Color::Black);
-	m_welcomeMessage.setOutlineThickness(3.0f);
-
-}
-
-void Game::setupSprite()
-{
-	if (!m_logoTexture.loadFromFile("ASSETS\\IMAGES\\SFML-LOGO.png"))
-	{
-		std::cout << "problem loading logo" << std::endl;
-	}
-	m_logoSprite.setTexture(m_logoTexture);
-	m_logoSprite.setPosition(300.0f, 180.0f);
-}

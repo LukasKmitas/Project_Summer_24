@@ -1,8 +1,7 @@
-#pragma once
-#ifndef GLOBALS_H
-#define GLOBALS_H
+#ifndef GLOBAL_H
+#define GLOBAL_H
 
-const unsigned int SCREEN_WIDTH = 800;
-const unsigned int SCREEN_HEIGHT = 600;
+const unsigned int SCREEN_WIDTH = 1920;
+const unsigned int SCREEN_HEIGHT = 1080;
 
 #endif
