@@ -4,11 +4,13 @@
 #include <SFML/Graphics.hpp>
 
 #include "MainMenu.h"
+#include "LevelEditor.h"
 #include "Options.h"
 
 enum class GameState
 {
 	MAIN_MENU,
+	LEVEL_EDITOR,
 	OPTIONS
 };
 
@@ -22,9 +24,10 @@ public:
 
 private:
 
-	MainMenu m_mainMenu; 
-	Options m_options;
 	GameState m_currentState;
+	MainMenu m_mainMenu;
+	LevelEditor m_levelEditor;
+	Options m_options;
 
 	void processEvents();
 	void processKeys(sf::Event t_event);

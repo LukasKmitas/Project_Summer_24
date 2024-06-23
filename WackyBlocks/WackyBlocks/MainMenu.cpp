@@ -8,7 +8,7 @@ MainMenu::MainMenu() : m_selectedItemIndex(0)
     }
     setupMenu();
     SoundManager::getInstance().loadAll();
-    SoundManager::getInstance().playMusic("MenuMusic", true);
+    //SoundManager::getInstance().playMusic("MenuMusic", true);
 
     m_particleManager.createBackgroundEffect();
 }

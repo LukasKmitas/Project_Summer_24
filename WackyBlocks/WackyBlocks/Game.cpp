@@ -53,6 +53,10 @@ void Game::processEvents()
 			{
 				m_mainMenu.handleMouseHover(mousePos);
 			}
+			else if (m_currentState == GameState::LEVEL_EDITOR)
+			{
+				m_levelEditor.handleMouseHover(mousePos);
+			}
 			else if (m_currentState == GameState::OPTIONS)
 			{
 				m_options.handleMouseMove(mousePos);
@@ -77,6 +81,8 @@ void Game::processEvents()
 							break;
 						case 1:
 							// Level Editor
+							m_currentState = GameState::LEVEL_EDITOR;
+							m_mainMenu.clearParticles();
 							break;
 						case 2:
 							m_currentState = GameState::OPTIONS;
@@ -89,6 +95,10 @@ void Game::processEvents()
 							break;
 						}
 					}
+				}
+				else if (m_currentState == GameState::LEVEL_EDITOR)
+				{
+					m_levelEditor.handleMouseClick(mousePos);
 				}
 				else if (m_currentState == GameState::OPTIONS)
 				{
@@ -111,7 +121,16 @@ void Game::processEvents()
 		{
 			if (newEvent.mouseButton.button == sf::Mouse::Left)
 			{
-				if (m_currentState == GameState::OPTIONS)
+				if (m_currentState == GameState::LEVEL_EDITOR)
+				{
+					m_levelEditor.handleMouseRelease();
+					if (m_levelEditor.isBackButtonPressed())
+					{
+						m_levelEditor.reset();
+						m_currentState = GameState::MAIN_MENU;
+					}
+				}
+				else if (m_currentState == GameState::OPTIONS)
 				{
 					m_options.handleMouseRelease();
 
@@ -155,6 +174,8 @@ void Game::processKeys(sf::Event t_event)
 			break;
 		case 1:
 			// Level Editor
+			m_currentState = GameState::LEVEL_EDITOR;
+			m_mainMenu.clearParticles();
 			break;
 		case 2:
 			// Options
@@ -182,6 +203,10 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		m_mainMenu.update(t_deltaTime);
 	}
+	else if (m_currentState == GameState::LEVEL_EDITOR)
+	{
+		m_levelEditor.update(t_deltaTime);
+	}
 	else if (m_currentState == GameState::OPTIONS)
 	{
 		m_options.update(t_deltaTime);
@@ -195,6 +220,10 @@ void Game::render()
 	if (m_currentState == GameState::MAIN_MENU)
 	{
 		m_mainMenu.render(m_window);
+	}
+	else if (m_currentState == GameState::LEVEL_EDITOR)
+	{
+		m_levelEditor.render(m_window);
 	}
 	else if (m_currentState == GameState::OPTIONS)
 	{
