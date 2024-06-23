@@ -12,15 +12,12 @@ enum class TabType
     BLOCKS,
     TRAPS,
     ENEMIES,
-    ESSENTIALS,
-    MISC
+    ESSENTIALS
 };
 
 enum class BlockType
 {
     NONE,
-    PLAYER,
-    HEALTH_PACK,
     DIRT,
     GRANITE,
     STONE,
@@ -31,7 +28,9 @@ enum class BlockType
     TRAP_BARREL,
     SLIME,
     EVIL_EYE,
-    SQUIG
+    SQUIG,
+    PLAYER,
+    HEALTH_PACK
 };
 
 struct Block
@@ -40,7 +39,7 @@ struct Block
     int health;
     int damage;
     bool traversable;
-    sf::RectangleShape shape; 
+    sf::RectangleShape shape;
 };
 
 class LevelEditor
@@ -64,7 +63,6 @@ private:
 
     void loadTextures();
     void setupUI();
-    void setupTabs();
     void setupGrid();
     void createTileBlocks();
     void toggleSlider();
@@ -73,8 +71,12 @@ private:
     void updateTileBlocks();
     void selectBlock(sf::Vector2f m_mousePos);
     void placeBlock(sf::Vector2f m_mousePos);
+    void deleteBlock(sf::Vector2f m_mousePos);
+    void placeBlocksInRectangle(sf::FloatRect m_selectionRect);
+    void toggleDeleteMode();
 
     TabType m_currentTab;
+    BlockType getBlockTypeForCurrentTab(int m_index) const;
 
     sf::Font m_font;
     sf::Text m_openSliderText;
@@ -83,6 +85,7 @@ private:
     sf::Text m_prevTabText;
     sf::Text m_backButtonText;
     sf::Text m_saveButtonText;
+    sf::Text m_deleteButtonText;
 
     sf::RectangleShape m_openSliderButton;
     sf::RectangleShape m_sliderPanel;
@@ -90,6 +93,7 @@ private:
     sf::RectangleShape m_prevTabButton;
     sf::RectangleShape m_backButton;
     sf::RectangleShape m_saveButton;
+    sf::RectangleShape m_deleteButton;
 
     float m_sliderPosition;
 
@@ -100,7 +104,9 @@ private:
     bool m_openSliderButtonHovered = false;
     bool m_nextTabButtonHovered = false;
     bool m_prevTabButtonHovered = false;
+    bool m_deleteButtonHovered = false;
     bool m_sliderOpen = false;
+    bool m_deleteMode = false;
 
     static const int GRID_ROWS = 8;
     static const int GRID_COLS = 4;
