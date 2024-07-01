@@ -4,6 +4,9 @@
 
 #include <iostream>
 #include <SFML/Graphics.hpp>
+#include <fstream>
+#include <sstream>
+#include <unordered_set>
 #include "Global.h"
 #include "SoundManager.h"
 
@@ -12,7 +15,8 @@ enum class TabType
     BLOCKS,
     TRAPS,
     ENEMIES,
-    ESSENTIALS
+    ESSENTIALS,
+    PICKUPS
 };
 
 enum class BlockType
@@ -29,16 +33,19 @@ enum class BlockType
     SLIME,
     EVIL_EYE,
     SQUIG,
+    ENEMY_BOSS,
+    HEALTH_PACK,
+    AMMO_PACK,
     PLAYER,
-    HEALTH_PACK
+    END_GATE
 };
 
 struct Block
 {
-    BlockType type;
-    int health;
-    int damage;
-    bool traversable;
+    BlockType type = BlockType::NONE;
+    int health = 0;
+    int damage = 0;
+    bool traversable = false;
     sf::RectangleShape shape;
 };
 
@@ -55,6 +62,7 @@ public:
     void handleMouseClick(sf::Vector2f m_mousePos);
     void handleMouseHover(sf::Vector2f m_mousePos);
     void handleMouseRelease();
+    void handleTextInput(sf::Event m_event);
 
     void reset();
     bool isBackButtonPressed() const;
@@ -64,7 +72,7 @@ private:
     void loadTextures();
     void setupUI();
     void setupGrid();
-    void createTileBlocks();
+    void initTileBlocks();
     void toggleSlider();
     void updateSliderPosition(sf::Time t_deltaTime);
     void updateTabName();
@@ -72,8 +80,17 @@ private:
     void selectBlock(sf::Vector2f m_mousePos);
     void placeBlock(sf::Vector2f m_mousePos);
     void deleteBlock(sf::Vector2f m_mousePos);
-    void placeBlocksInRectangle(sf::FloatRect m_selectionRect);
     void toggleDeleteMode();
+
+    void setupSaveUI();
+    void handleSaveBoxClick(sf::Vector2f m_mousePos);
+    void saveToFile(const std::string& m_fileName);
+    void showWarning(const std::string& m_message);
+    void updateWarning(sf::Time t_deltaTime);
+    void updateSaveUI();
+    bool hasEssentialAssets(const std::vector<BlockType>& requiredAssets) const;
+    bool hasPlayer() const;
+    bool hasEndGate() const;
 
     TabType m_currentTab;
     BlockType getBlockTypeForCurrentTab(int m_index) const;
@@ -124,10 +141,29 @@ private:
     sf::Texture m_squigTexture;
     sf::Texture m_playerTexture;
     sf::Texture m_healthPackTexture;
+    sf::Texture m_ammoPackTexture;
+    sf::Texture m_boss1Texture;
+    sf::Texture m_endGateTexture;
 
     std::vector<Block> m_mapBlocks;
     BlockType m_selectedBlockType = BlockType::NONE;
     int m_selectedBlockIndex = -1;
+
+    // UI components for saving the map
+    sf::RectangleShape m_saveBox;
+    sf::RectangleShape m_fileNameBox;
+    sf::RectangleShape m_saveConfirmButton;
+    sf::Text m_savePromptText;
+    sf::Text m_fileNameText;
+    sf::Text m_saveConfirmButtonText;
+    sf::Text m_warningText;
+
+    sf::Time m_warningDisplayTime;
+    sf::Time m_warningDuration = sf::seconds(3);
+
+    std::string m_fileNameInput;
+    bool m_showSaveBox = false;
+    bool m_showWarning = false;
 
 };
 

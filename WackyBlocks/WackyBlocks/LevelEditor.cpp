@@ -10,7 +10,8 @@ LevelEditor::LevelEditor()
     loadTextures();
     setupUI();
     setupGrid();
-    createTileBlocks();
+    initTileBlocks();
+    setupSaveUI();
 }
 
 LevelEditor::~LevelEditor()
@@ -20,11 +21,12 @@ LevelEditor::~LevelEditor()
 void LevelEditor::update(sf::Time t_deltaTime)
 {
     updateSliderPosition(t_deltaTime);
+    updateWarning(t_deltaTime);
 }
 
 void LevelEditor::render(sf::RenderWindow& m_window)
 {
-    // Render slider panel
+    // slider panel
     m_window.draw(m_sliderPanel);
     m_window.draw(m_tabNameText);
     m_window.draw(m_nextTabButton);
@@ -34,7 +36,7 @@ void LevelEditor::render(sf::RenderWindow& m_window)
     m_window.draw(m_deleteButton);
     m_window.draw(m_deleteButtonText);
 
-    // Render grid
+    // Slider grid
     for (int row = 0; row < GRID_ROWS; ++row)
     {
         for (int col = 0; col < GRID_COLS; ++col)
@@ -43,33 +45,56 @@ void LevelEditor::render(sf::RenderWindow& m_window)
         }
     }
 
-    // Render tile blocks in grid
+    // tile blocks in grid
     for (const auto& tile : m_tileBlocks)
     {
         m_window.draw(tile);
     }
 
-    // Render placed blocks
+    // placed blocks
     for (const auto& block : m_mapBlocks)
     {
         m_window.draw(block.shape);
     }
 
-    // Render back button
+    // back button
     m_window.draw(m_backButton);
     m_window.draw(m_backButtonText);
 
-    // Render save button
+    // save button
     m_window.draw(m_saveButton);
     m_window.draw(m_saveButtonText);
 
-    // Render open slider button
+    // open slider button
     m_window.draw(m_openSliderButton);
     m_window.draw(m_openSliderText);
+
+    // save UI
+    if (m_showSaveBox)
+    {
+        m_window.draw(m_saveBox);
+        m_window.draw(m_savePromptText);
+        m_window.draw(m_fileNameBox);
+        m_window.draw(m_fileNameText);
+        m_window.draw(m_saveConfirmButton);
+        m_window.draw(m_saveConfirmButtonText);
+    }
+
+    // Warning message
+    if (m_showWarning)
+    {
+        m_window.draw(m_warningText);
+    }
 }
 
 void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
 {
+    if (m_showSaveBox)
+    {
+        handleSaveBoxClick(m_mousePos);
+        return;
+    }
+
     if (m_backButton.getGlobalBounds().contains(m_mousePos))
     {
         m_backButtonPressed = true;
@@ -77,8 +102,23 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
     }
     else if (m_saveButton.getGlobalBounds().contains(m_mousePos))
     {
+        std::vector<BlockType> requiredAssets = { BlockType::PLAYER, BlockType::END_GATE };
+        if (!hasEssentialAssets(requiredAssets))
+        {
+            if (!hasPlayer())
+            {
+                showWarning("Map must include a player to be saved");
+            }
+            else if (!hasEndGate())
+            {
+                showWarning("Map must include an end gate to be saved");
+            }
+        }
+        else
+        {
+            m_showSaveBox = true;
+        }
         SoundManager::getInstance().playSound("buttonClick");
-        std::cout << "Map saved" << std::endl;
     }
     else if (m_openSliderButton.getGlobalBounds().contains(m_mousePos))
     {
@@ -102,6 +142,10 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
         }
         else if (m_currentTab == TabType::ESSENTIALS)
         {
+            m_currentTab = TabType::PICKUPS;
+        }
+        else if (m_currentTab == TabType::PICKUPS)
+        {
             m_currentTab = TabType::BLOCKS;
         }
         updateTabName();
@@ -114,7 +158,7 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
         // Handle switching to the previous tab
         if (m_currentTab == TabType::BLOCKS)
         {
-            m_currentTab = TabType::ESSENTIALS;
+            m_currentTab = TabType::PICKUPS;
         }
         else if (m_currentTab == TabType::TRAPS)
         {
@@ -127,6 +171,10 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
         else if (m_currentTab == TabType::ESSENTIALS)
         {
             m_currentTab = TabType::ENEMIES;
+        }
+        else if (m_currentTab == TabType::PICKUPS)
+        {
+            m_currentTab = TabType::ESSENTIALS;
         }
         updateTabName();
         updateTileBlocks();
@@ -161,72 +209,72 @@ void LevelEditor::handleMouseHover(sf::Vector2f m_mousePos)
     if (m_backButton.getGlobalBounds().contains(m_mousePos))
     {
         m_backButtonHovered = true;
-        m_backButton.setFillColor(sf::Color(100, 100, 100));  // Highlight color
+        m_backButton.setFillColor(sf::Color(100, 100, 100));
     }
     else
     {
         m_backButtonHovered = false;
-        m_backButton.setFillColor(sf::Color::Transparent);  // Default color
+        m_backButton.setFillColor(sf::Color::Transparent);
     }
 
     // Save button hover effect
     if (m_saveButton.getGlobalBounds().contains(m_mousePos))
     {
         m_saveButtonHovered = true;
-        m_saveButton.setFillColor(sf::Color(100, 100, 100));  // Highlight color
+        m_saveButton.setFillColor(sf::Color(100, 100, 100));
     }
     else
     {
         m_saveButtonHovered = false;
-        m_saveButton.setFillColor(sf::Color::Transparent);  // Default color
+        m_saveButton.setFillColor(sf::Color::Transparent);
     }
 
     // Open slider button hover effect
     if (m_openSliderButton.getGlobalBounds().contains(m_mousePos))
     {
         m_openSliderButtonHovered = true;
-        m_openSliderButton.setFillColor(sf::Color(100, 100, 100));  // Highlight color
+        m_openSliderButton.setFillColor(sf::Color(100, 100, 100));
     }
     else
     {
         m_openSliderButtonHovered = false;
-        m_openSliderButton.setFillColor(sf::Color::Transparent);  // Default color
+        m_openSliderButton.setFillColor(sf::Color::Transparent);
     }
 
     // Next tab button hover effect
     if (m_nextTabButton.getGlobalBounds().contains(m_mousePos))
     {
         m_nextTabButtonHovered = true;
-        m_nextTabButton.setFillColor(sf::Color(100, 100, 100));  // Highlight color
+        m_nextTabButton.setFillColor(sf::Color(100, 100, 100));
     }
     else
     {
         m_nextTabButtonHovered = false;
-        m_nextTabButton.setFillColor(sf::Color::Transparent);  // Default color
+        m_nextTabButton.setFillColor(sf::Color::Transparent);
     }
 
     // Previous tab button hover effect
     if (m_prevTabButton.getGlobalBounds().contains(m_mousePos))
     {
         m_prevTabButtonHovered = true;
-        m_prevTabButton.setFillColor(sf::Color(100, 100, 100));  // Highlight color
+        m_prevTabButton.setFillColor(sf::Color(100, 100, 100));
     }
     else
     {
         m_prevTabButtonHovered = false;
-        m_prevTabButton.setFillColor(sf::Color::Transparent);  // Default color
+        m_prevTabButton.setFillColor(sf::Color::Transparent);
     }
 
     // Delete button hover effect
     if (m_deleteButton.getGlobalBounds().contains(m_mousePos))
     {
         m_deleteButtonHovered = true;
-        m_deleteButton.setFillColor(sf::Color(100, 100, 100));  // Highlight color
+        m_deleteButton.setFillColor(sf::Color(100, 100, 100));
     }
     else
     {
         m_deleteButtonHovered = false;
-        m_deleteButton.setFillColor(sf::Color::Transparent);  // Default color
+        m_deleteButton.setFillColor(sf::Color::Transparent);
     }
 }
 
@@ -286,14 +334,27 @@ void LevelEditor::loadTextures()
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
+    if (!m_boss1Texture.loadFromFile("ASSETS\\IMAGES\\boss1.png"))
+    {
+        std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
+    }
     // ESSENTIALS
     if (!m_playerTexture.loadFromFile("ASSETS\\IMAGES\\player.png"))
     {
         std::cout << "Problem loading Player Texture" << std::endl;
     }
-    if (!m_healthPackTexture.loadFromFile("ASSETS\\IMAGES\\health_pack.png"))
+    if (!m_endGateTexture.loadFromFile("ASSETS\\IMAGES\\portal.png"))
+    {
+        std::cout << "Problem loading End Gate Texture" << std::endl;
+    }
+    // PICKUPS
+    if (!m_healthPackTexture.loadFromFile("ASSETS\\IMAGES\\healthPack.png"))
     {
         std::cout << "Problem loading Health Pack Texture" << std::endl;
+    }
+    if (!m_ammoPackTexture.loadFromFile("ASSETS\\IMAGES\\ammoPack.png"))
+    {
+        std::cout << "Problem loading Ammo Pack Texture" << std::endl;
     }
 }
 
@@ -404,7 +465,7 @@ void LevelEditor::setupGrid()
     }
 }
 
-void LevelEditor::createTileBlocks()
+void LevelEditor::initTileBlocks()
 {
     sf::RectangleShape dirtTile;
     dirtTile.setSize(sf::Vector2f(80.0f, 80.0f));
@@ -532,6 +593,10 @@ void LevelEditor::updateTabName()
     {
         m_tabNameText.setString("Essentials");
     }
+    else if (m_currentTab == TabType::PICKUPS)
+    {
+        m_tabNameText.setString("Pick Ups");
+    }
     std::cout << "Current tab: " << m_tabNameText.getString().toAnsiString() << std::endl;
 }
 
@@ -599,6 +664,11 @@ void LevelEditor::updateTileBlocks()
         enemySquigTile.setSize(sf::Vector2f(80.0f, 80.0f));
         enemySquigTile.setTexture(&m_squigTexture);
         m_tileBlocks.push_back(enemySquigTile);
+
+        sf::RectangleShape enemyBossTile;
+        enemyBossTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        enemyBossTile.setTexture(&m_boss1Texture);
+        m_tileBlocks.push_back(enemyBossTile);
     }
     else if (m_currentTab == TabType::ESSENTIALS)
     {
@@ -607,10 +677,22 @@ void LevelEditor::updateTileBlocks()
         playerTile.setTexture(&m_playerTexture);
         m_tileBlocks.push_back(playerTile);
 
+        sf::RectangleShape endGoal;
+        endGoal.setSize(sf::Vector2f(80.0f, 80.0f));
+        endGoal.setTexture(&m_endGateTexture);
+        m_tileBlocks.push_back(endGoal);
+    }
+    else if (m_currentTab == TabType::PICKUPS)
+    {
         sf::RectangleShape healthPackTile;
         healthPackTile.setSize(sf::Vector2f(80.0f, 80.0f));
         healthPackTile.setTexture(&m_healthPackTexture);
         m_tileBlocks.push_back(healthPackTile);
+
+        sf::RectangleShape ammoPackTile;
+        ammoPackTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        ammoPackTile.setTexture(&m_ammoPackTexture);
+        m_tileBlocks.push_back(ammoPackTile);
     }
 
     // Assign tiles to grid
@@ -642,6 +724,7 @@ void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
                 m_tileBlocks[i].setOutlineColor(sf::Color::Transparent);
                 m_tileBlocks[i].setOutlineThickness(0.0f);
                 std::cout << "Deselected block: " << m_tabNameText.getString().toAnsiString() << " #" << (i + 1) << std::endl;
+                SoundManager::getInstance().playSound("buttonClick");
             }
             else
             {
@@ -754,14 +837,32 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             newBlock.traversable = false;
             newBlock.damage = 14;
             break;
+        case BlockType::ENEMY_BOSS:
+            newBlock.shape.setTexture(&m_boss1Texture);
+            newBlock.health = 300;
+            newBlock.traversable = false;
+            newBlock.damage = 25;
+            break;
+        case BlockType::HEALTH_PACK:
+            newBlock.shape.setTexture(&m_healthPackTexture);
+            newBlock.health = 0;
+            newBlock.traversable = true;
+            newBlock.damage = 0;
+            break;
+        case BlockType::AMMO_PACK:
+            newBlock.shape.setTexture(&m_ammoPackTexture);
+            newBlock.health = 0;
+            newBlock.traversable = true;
+            newBlock.damage = 0;
+            break;
         case BlockType::PLAYER:
             newBlock.shape.setTexture(&m_playerTexture);
             newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;
-        case BlockType::HEALTH_PACK:
-            newBlock.shape.setTexture(&m_healthPackTexture);
+        case BlockType::END_GATE:
+            newBlock.shape.setTexture(&m_endGateTexture);
             newBlock.health = 0;
             newBlock.traversable = true;
             newBlock.damage = 0;
@@ -784,127 +885,15 @@ void LevelEditor::deleteBlock(sf::Vector2f m_mousePos)
 
     // Check if a block exists at this position and remove it
     auto it = std::remove_if(m_mapBlocks.begin(), m_mapBlocks.end(),
-        [snappedX, snappedY](const Block& block) 
+        [snappedX, snappedY](const Block& block)
         {
             return block.shape.getPosition().x == snappedX && block.shape.getPosition().y == snappedY;
         });
+
     if (it != m_mapBlocks.end())
     {
         m_mapBlocks.erase(it, m_mapBlocks.end());
         std::cout << "Deleted block at: (" << snappedX << ", " << snappedY << ")" << std::endl;
-    }
-}
-
-void LevelEditor::placeBlocksInRectangle(sf::FloatRect m_selectionRect)
-{
-    float gridSize = 80.0f;
-
-    for (float x = m_selectionRect.left; x < m_selectionRect.left + m_selectionRect.width; x += gridSize)
-    {
-        for (float y = m_selectionRect.top; y < m_selectionRect.top + m_selectionRect.height; y += gridSize)
-        {
-            sf::Vector2f snappedPos(std::floor(x / gridSize) * gridSize, std::floor(y / gridSize) * gridSize);
-
-            // Check if a block already exists at this position and remove it
-            auto it = std::remove_if(m_mapBlocks.begin(), m_mapBlocks.end(),
-                [snappedPos](const Block& block) 
-                {
-                    return block.shape.getPosition() == snappedPos;
-                });
-            m_mapBlocks.erase(it, m_mapBlocks.end());
-
-            Block newBlock;
-            newBlock.type = m_selectedBlockType;
-            newBlock.shape.setSize(sf::Vector2f(gridSize, gridSize));
-            newBlock.shape.setPosition(snappedPos);
-
-            switch (m_selectedBlockType)
-            {
-            case BlockType::DIRT:
-                newBlock.shape.setTexture(&m_dirtTexture);
-                newBlock.health = 100;
-                newBlock.traversable = false;
-                newBlock.damage = 0;
-                break;
-            case BlockType::GRANITE:
-                newBlock.shape.setTexture(&m_graniteTexture);
-                newBlock.health = 200;
-                newBlock.traversable = false;
-                newBlock.damage = 0;
-                break;
-            case BlockType::STONE:
-                newBlock.shape.setTexture(&m_stoneTexture);
-                newBlock.health = 150;
-                newBlock.traversable = false;
-                newBlock.damage = 0;
-                break;
-            case BlockType::SAND:
-                newBlock.shape.setTexture(&m_sandTexture);
-                newBlock.health = 50;
-                newBlock.traversable = false;
-                newBlock.damage = 0;
-                break;
-            case BlockType::WATER:
-                newBlock.shape.setFillColor(sf::Color(0, 0, 255));
-                newBlock.health = 0;
-                newBlock.traversable = true;
-                newBlock.damage = 0;
-                break;
-            case BlockType::LAVA:
-                newBlock.shape.setFillColor(sf::Color(255, 69, 0));
-                newBlock.health = 0;
-                newBlock.traversable = false;
-                newBlock.damage = 10;
-                break;
-            case BlockType::TRAP_SPIKE:
-                newBlock.shape.setTexture(&m_spikeTexture);
-                newBlock.health = 0;
-                newBlock.traversable = false;
-                newBlock.damage = 20;
-                break;
-            case BlockType::TRAP_BARREL:
-                newBlock.shape.setTexture(&m_barrelTexture);
-                newBlock.health = 100;
-                newBlock.traversable = false;
-                newBlock.damage = 0;
-                break;
-            case BlockType::SLIME:
-                newBlock.shape.setTexture(&m_slimeTexture);
-                newBlock.health = 50;
-                newBlock.traversable = false;
-                newBlock.damage = 5;
-                break;
-            case BlockType::EVIL_EYE:
-                newBlock.shape.setTexture(&m_evilEyeTexture);
-                newBlock.health = 70;
-                newBlock.traversable = false;
-                newBlock.damage = 10;
-                break;
-            case BlockType::SQUIG:
-                newBlock.shape.setTexture(&m_squigTexture);
-                newBlock.health = 100;
-                newBlock.traversable = false;
-                newBlock.damage = 14;
-                break;
-            case BlockType::PLAYER:
-                newBlock.shape.setTexture(&m_playerTexture);
-                newBlock.health = 100;
-                newBlock.traversable = true;
-                newBlock.damage = 0;
-                break;
-            case BlockType::HEALTH_PACK:
-                newBlock.shape.setTexture(&m_healthPackTexture);
-                newBlock.health = 0;
-                newBlock.traversable = true;
-                newBlock.damage = 0;
-                break;
-            default:
-                break;
-            }
-
-            m_mapBlocks.push_back(newBlock);
-            std::cout << "Placed block at: (" << snappedPos.x << ", " << snappedPos.y << ")" << std::endl;
-        }
     }
 }
 
@@ -923,6 +912,239 @@ void LevelEditor::toggleDeleteMode()
         m_deleteButton.setOutlineThickness(2.0f);
         std::cout << "Delete mode disabled" << std::endl;
     }
+}
+
+void LevelEditor::setupSaveUI()
+{
+    // save box
+    m_saveBox.setSize(sf::Vector2f(500.0f, 250.0f));
+    m_saveBox.setFillColor(sf::Color(50, 50, 50, 200));
+    m_saveBox.setOutlineColor(sf::Color::White);
+    m_saveBox.setOutlineThickness(2.0f);
+    m_saveBox.setPosition(SCREEN_WIDTH / 2 - 250.0f, SCREEN_HEIGHT / 2 - 100.0f);
+
+    // save prompt text
+    m_savePromptText.setFont(m_font);
+    m_savePromptText.setString("Enter the file name below");
+    m_savePromptText.setFillColor(sf::Color::White);
+    m_savePromptText.setPosition(m_saveBox.getPosition().x + 50.0f, m_saveBox.getPosition().y + 20.0f);
+
+    // file name box
+    m_fileNameBox.setSize(sf::Vector2f(420.0f, 50.0f));
+    m_fileNameBox.setFillColor(sf::Color::White);
+    m_fileNameBox.setOutlineColor(sf::Color::Black);
+    m_fileNameBox.setOutlineThickness(2.0f);
+    m_fileNameBox.setPosition(m_saveBox.getPosition().x + 50.0f, m_saveBox.getPosition().y + 80.0f);
+
+    // file name text
+    m_fileNameText.setFont(m_font);
+    m_fileNameText.setString("");
+    m_fileNameText.setFillColor(sf::Color::Black);
+    m_fileNameText.setPosition(m_saveBox.getPosition().x + 50.0f, m_saveBox.getPosition().y + 90.0f);
+
+    // save confirm button
+    m_saveConfirmButton.setSize(sf::Vector2f(100.0f, 50.0f));
+    m_saveConfirmButton.setFillColor(sf::Color::Transparent);
+    m_saveConfirmButton.setOutlineColor(sf::Color::Red);
+    m_saveConfirmButton.setOutlineThickness(2.0f);
+    m_saveConfirmButton.setPosition(m_saveBox.getPosition().x + 200.0f, m_saveBox.getPosition().y + 160.0f);
+
+    // save confirm button text
+    m_saveConfirmButtonText.setFont(m_font);
+    m_saveConfirmButtonText.setString("Save");
+    m_saveConfirmButtonText.setFillColor(sf::Color::White);
+    m_saveConfirmButtonText.setPosition(m_saveConfirmButton.getPosition().x + 10.0f, m_saveConfirmButton.getPosition().y + 5.0f);
+
+    // warning text
+    m_warningText.setFont(m_font);
+    m_warningText.setFillColor(sf::Color::Red);
+    m_warningText.setOutlineColor(sf::Color::Yellow);
+    m_warningText.setOutlineThickness(1);
+    m_warningText.setCharacterSize(30);
+    m_warningText.setPosition(SCREEN_WIDTH / 2, 50);
+}
+
+void LevelEditor::handleSaveBoxClick(sf::Vector2f m_mousePos)
+{
+    if (m_saveConfirmButton.getGlobalBounds().contains(m_mousePos) && !m_fileNameInput.empty())
+    {
+        std::vector<BlockType> requiredAssets = { BlockType::PLAYER, BlockType::END_GATE };
+        if (!hasEssentialAssets(requiredAssets))
+        {
+            if (!hasPlayer())
+            {
+                showWarning("Map must include a <player> to be saved");
+            }
+            else if (!hasEndGate())
+            {
+                showWarning("Map must include an <end gate> to be saved");
+            }
+        }
+        else
+        {
+            saveToFile(m_fileNameInput);
+            m_showSaveBox = false;
+            m_fileNameInput.clear();
+            m_fileNameText.setString("");
+        }
+    }
+}
+
+void LevelEditor::handleTextInput(sf::Event m_event)
+{
+    if (m_showSaveBox)
+    {
+        if (m_event.type == sf::Event::TextEntered)
+        {
+            if (m_event.text.unicode == '\b') // Handle backspace
+            {
+                if (!m_fileNameInput.empty())
+                {
+                    m_fileNameInput.pop_back();
+                }
+            }
+            else if (m_event.text.unicode < 128) // Handle ASCII characters
+            {
+                m_fileNameInput += static_cast<char>(m_event.text.unicode);
+            }
+            m_fileNameText.setString(m_fileNameInput);
+            updateSaveUI();
+        }
+    }
+}
+
+void LevelEditor::saveToFile(const std::string& m_fileName)
+{
+    std::string filePath = "ASSETS/SAVEFILES/" + m_fileName + ".json";
+    std::ofstream outFile(filePath);
+
+    if (!outFile.is_open())
+    {
+        std::cout << "Could not open file for writing: " << filePath << std::endl;
+        showWarning("Failed to save map!");
+        return;
+    }
+
+    std::ostringstream jsonStream;
+    jsonStream << "{\n";
+    jsonStream << "  \"blocks\":\n";
+    jsonStream << "  [\n";
+
+    for (int i = 0; i < m_mapBlocks.size(); ++i)
+    {
+        const auto& block = m_mapBlocks[i];
+        jsonStream << "    {\n";
+        jsonStream << "      \"type\": " << static_cast<int>(block.type) << ",\n";
+        jsonStream << "      \"health\": " << block.health << ",\n";
+        jsonStream << "      \"damage\": " << block.damage << ",\n";
+        jsonStream << "      \"traversable\": " << (block.traversable ? "true" : "false") << ",\n";
+        jsonStream << "      \"position\":\n";
+        jsonStream << "      {\n";
+        jsonStream << "        \"x\": " << block.shape.getPosition().x << ",\n";
+        jsonStream << "        \"y\": " << block.shape.getPosition().y << "\n";
+        jsonStream << "      }\n";
+        jsonStream << "    }";
+        if (i < m_mapBlocks.size() - 1)
+        {
+            jsonStream << ",";
+        }
+        jsonStream << "\n";
+    }
+
+    jsonStream << "  ]\n";
+    jsonStream << "}";
+
+    outFile << jsonStream.str();
+    outFile.close();
+
+    std::cout << "Map saved to " << filePath << std::endl;
+    showWarning("Map saved successfully!");
+}
+
+void LevelEditor::showWarning(const std::string& m_message)
+{
+    m_warningText.setString(m_message);
+    m_warningText.setPosition(SCREEN_WIDTH / 2 - m_warningText.getGlobalBounds().width / 2, 100);
+    m_showWarning = true;
+    m_warningDisplayTime = sf::Time::Zero;
+}
+
+void LevelEditor::updateWarning(sf::Time t_deltaTime)
+{
+    if (m_showWarning)
+    {
+        m_warningDisplayTime += t_deltaTime;
+        if (m_warningDisplayTime > m_warningDuration)
+        {
+            m_showWarning = false;
+        }
+        else
+        {
+            float alpha = 255 * (1 - m_warningDisplayTime.asSeconds() / m_warningDuration.asSeconds());
+            m_warningText.setFillColor(sf::Color(255, 0, 0, static_cast<sf::Uint8>(alpha)));
+            m_warningText.move(0, -30 * t_deltaTime.asSeconds());
+        }
+    }
+}
+
+void LevelEditor::updateSaveUI()
+{
+    if (!m_fileNameInput.empty())
+    {
+        m_fileNameBox.setOutlineColor(sf::Color::Green);
+        m_saveConfirmButton.setOutlineColor(sf::Color::Green);
+        m_saveConfirmButtonText.setFillColor(sf::Color::Green);
+    }
+    else
+    {
+        m_fileNameBox.setOutlineColor(sf::Color::Red);
+        m_saveConfirmButton.setOutlineColor(sf::Color::Red);
+        m_saveConfirmButtonText.setFillColor(sf::Color::Red);
+    }
+}
+
+bool LevelEditor::hasEssentialAssets(const std::vector<BlockType>& requiredAssets) const
+{
+    std::unordered_set<BlockType> presentAssets;
+
+    for (const auto& block : m_mapBlocks)
+    {
+        presentAssets.insert(block.type);
+    }
+
+    for (const auto& required : requiredAssets)
+    {
+        if (presentAssets.find(required) == presentAssets.end())
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool LevelEditor::hasPlayer() const
+{
+    for (const auto& block : m_mapBlocks)
+    {
+        if (block.type == BlockType::PLAYER)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool LevelEditor::hasEndGate() const
+{
+    for (const auto& block : m_mapBlocks)
+    {
+        if (block.type == BlockType::END_GATE)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 BlockType LevelEditor::getBlockTypeForCurrentTab(int m_index) const
@@ -953,16 +1175,24 @@ BlockType LevelEditor::getBlockTypeForCurrentTab(int m_index) const
         case 0: return BlockType::SLIME;
         case 1: return BlockType::EVIL_EYE;
         case 2: return BlockType::SQUIG;
+        case 3: return BlockType::ENEMY_BOSS;
         default: return BlockType::NONE;
         }
     case TabType::ESSENTIALS:
         switch (m_index)
         {
         case 0: return BlockType::PLAYER;
-        case 1: return BlockType::HEALTH_PACK;
+        case 1: return BlockType::END_GATE;
+        default: return BlockType::NONE;
+        }
+    case TabType::PICKUPS:
+        switch (m_index)
+        {
+        case 0: return BlockType::HEALTH_PACK;
+        case 1: return BlockType::AMMO_PACK;
         default: return BlockType::NONE;
         }
     default:
-        return BlockType::NONE;
+        break;
     }
 }

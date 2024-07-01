@@ -18,7 +18,7 @@ public:
     void render(sf::RenderWindow& m_window);
 
     void handleMouseClick(sf::Vector2f m_mousePos);
-    void handleMouseMove(sf::Vector2f m_mousePos);
+    void handleMouseHover(sf::Vector2f m_mousePos);
     void handleMouseRelease();
     void handleRightClick(sf::Vector2f m_mousePos);
 

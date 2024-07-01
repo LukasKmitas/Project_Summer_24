@@ -51,7 +51,7 @@ void Options::handleMouseClick(sf::Vector2f m_mousePos)
     }
 }
 
-void Options::handleMouseMove(sf::Vector2f m_mousePos)
+void Options::handleMouseHover(sf::Vector2f m_mousePos)
 {
     if (m_draggingSound)
     {
