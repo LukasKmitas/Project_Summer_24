@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f945aa9f-50d6-4692-bb56-31ba9f29866c}</ProjectGuid>
-    <RootNamespace>WackyBlocks</RootNamespace>
+    <ProjectGuid>{39463cee-9ec0-41ae-9f83-cb5eaa20f35c}</ProjectGuid>
+    <RootNamespace>ServerForWackyBlocks</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -147,32 +147,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Game.cpp" />
-    <ClCompile Include="LevelEditor.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MainMenu.cpp" />
-    <ClCompile Include="Options.cpp" />
-    <ClCompile Include="ParticleManager.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="SoundManager.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Block.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="GameStates.h" />
-    <ClInclude Include="Global.h" />
-    <ClInclude Include="LevelEditor.h" />
-    <ClInclude Include="MainMenu.h" />
-    <ClInclude Include="Options.h" />
-    <ClInclude Include="ParticleManager.h" />
-    <ClInclude Include="Player.h" />
-    <ClInclude Include="SoundManager.h" />
+    <ClCompile Include="Server.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="ASSETS\IMAGES\SFML-LOGO.png" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="ASSETS\FONTS\ariblk.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

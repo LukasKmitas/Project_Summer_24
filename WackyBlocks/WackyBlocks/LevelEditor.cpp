@@ -3,7 +3,7 @@
 LevelEditor::LevelEditor()
     : m_sliderOpen(false), m_sliderPosition(SCREEN_WIDTH)
 {
-    if (!m_font.loadFromFile("ASSETS/FONTS/ariblk.ttf"))
+    if (!m_font.loadFromFile("Assets\\Fonts\\ariblk.ttf"))
     {
         std::cout << "problem loading Font" << std::endl;
     }
@@ -296,63 +296,63 @@ bool LevelEditor::isBackButtonPressed() const
 void LevelEditor::loadTextures()
 {
     // BLOCKS
-    if (!m_dirtTexture.loadFromFile("ASSETS\\IMAGES\\dirt01.png"))
+    if (!m_dirtTexture.loadFromFile("Assets\\Images\\LevelEditor\\dirt01.png"))
     {
         std::cout << "Problem loading Dirt Texture" << std::endl;
     }
-    if (!m_graniteTexture.loadFromFile("ASSETS\\IMAGES\\granite.png"))
+    if (!m_graniteTexture.loadFromFile("Assets\\Images\\LevelEditor\\granite.png"))
     {
         std::cout << "Problem loading granite Texture" << std::endl;
     }
-    if (!m_stoneTexture.loadFromFile("ASSETS\\IMAGES\\stone.png"))
+    if (!m_stoneTexture.loadFromFile("Assets\\Images\\LevelEditor\\stone.png"))
     {
         std::cout << "Problem loading stone Texture" << std::endl;
     }
-    if (!m_sandTexture.loadFromFile("ASSETS\\IMAGES\\sand.png"))
+    if (!m_sandTexture.loadFromFile("Assets\\Images\\LevelEditor\\sand.png"))
     {
         std::cout << "Problem loading sand Texture" << std::endl;
     }
     // TRAPS
-    if (!m_spikeTexture.loadFromFile("ASSETS\\IMAGES\\spike.png"))
+    if (!m_spikeTexture.loadFromFile("Assets\\Images\\LevelEditor\\spike.png"))
     {
         std::cout << "Problem loading Spike Texture" << std::endl;
     }
-    if (!m_barrelTexture.loadFromFile("ASSETS\\IMAGES\\barrel.png"))
+    if (!m_barrelTexture.loadFromFile("Assets\\Images\\LevelEditor\\barrel.png"))
     {
         std::cout << "Problem loading Barrel Texture" << std::endl;
     }
     // ENEMIES
-    if (!m_slimeTexture.loadFromFile("ASSETS\\IMAGES\\slime.png"))
+    if (!m_slimeTexture.loadFromFile("Assets\\Images\\LevelEditor\\slime.png"))
     {
         std::cout << "Problem loading Basic Enemy Texture" << std::endl;
     }
-    if (!m_evilEyeTexture.loadFromFile("ASSETS\\IMAGES\\evilEye.png"))
+    if (!m_evilEyeTexture.loadFromFile("Assets\\Images\\LevelEditor\\evilEye.png"))
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
-    if (!m_squigTexture.loadFromFile("ASSETS\\IMAGES\\squig.png"))
+    if (!m_squigTexture.loadFromFile("Assets\\Images\\LevelEditor\\squig.png"))
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
-    if (!m_boss1Texture.loadFromFile("ASSETS\\IMAGES\\boss1.png"))
+    if (!m_boss1Texture.loadFromFile("Assets\\Images\\LevelEditor\\boss1.png"))
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
     // ESSENTIALS
-    if (!m_playerTexture.loadFromFile("ASSETS\\IMAGES\\player.png"))
+    if (!m_playerTexture.loadFromFile("Assets\\Images\\LevelEditor\\player.png"))
     {
         std::cout << "Problem loading Player Texture" << std::endl;
     }
-    if (!m_endGateTexture.loadFromFile("ASSETS\\IMAGES\\portal.png"))
+    if (!m_endGateTexture.loadFromFile("Assets\\Images\\LevelEditor\\portal.png"))
     {
         std::cout << "Problem loading End Gate Texture" << std::endl;
     }
     // PICKUPS
-    if (!m_healthPackTexture.loadFromFile("ASSETS\\IMAGES\\healthPack.png"))
+    if (!m_healthPackTexture.loadFromFile("Assets\\Images\\LevelEditor\\healthPack.png"))
     {
         std::cout << "Problem loading Health Pack Texture" << std::endl;
     }
-    if (!m_ammoPackTexture.loadFromFile("ASSETS\\IMAGES\\ammoPack.png"))
+    if (!m_ammoPackTexture.loadFromFile("Assets\\Images\\LevelEditor\\ammoPack.png"))
     {
         std::cout << "Problem loading Ammo Pack Texture" << std::endl;
     }
@@ -1015,7 +1015,7 @@ void LevelEditor::handleTextInput(sf::Event m_event)
 
 void LevelEditor::saveToFile(const std::string& m_fileName)
 {
-    std::string filePath = "ASSETS/SAVEFILES/" + m_fileName + ".json";
+    std::string filePath = "Assets\\SaveFiles\\" + m_fileName + ".json";
     std::ofstream outFile(filePath);
 
     if (!outFile.is_open())

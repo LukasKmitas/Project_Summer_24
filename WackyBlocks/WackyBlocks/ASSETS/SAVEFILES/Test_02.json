@@ -8,29 +8,7 @@
       "traversable": false,
       "position":
       {
-        "x": 720,
-        "y": 640
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 640,
-        "y": 640
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 640,
+        "x": 240,
         "y": 560
       }
     },
@@ -41,7 +19,29 @@
       "traversable": false,
       "position":
       {
-        "x": 560,
+        "x": 320,
+        "y": 560
+      }
+    },
+    {
+      "type": 5,
+      "health": 0,
+      "damage": 0,
+      "traversable": true,
+      "position":
+      {
+        "x": 400,
+        "y": 560
+      }
+    },
+    {
+      "type": 5,
+      "health": 0,
+      "damage": 0,
+      "traversable": true,
+      "position":
+      {
+        "x": 480,
         "y": 560
       }
     },
@@ -52,7 +52,18 @@
       "traversable": false,
       "position":
       {
-        "x": 560,
+        "x": 160,
+        "y": 560
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 160,
         "y": 480
       }
     },
@@ -63,18 +74,7 @@
       "traversable": false,
       "position":
       {
-        "x": 480,
-        "y": 480
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 480,
+        "x": 160,
         "y": 400
       }
     },
@@ -85,7 +85,7 @@
       "traversable": false,
       "position":
       {
-        "x": 400,
+        "x": 80,
         "y": 400
       }
     },
@@ -96,7 +96,7 @@
       "traversable": false,
       "position":
       {
-        "x": 400,
+        "x": 80,
         "y": 320
       }
     },
@@ -107,18 +107,7 @@
       "traversable": false,
       "position":
       {
-        "x": 320,
-        "y": 320
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 320,
+        "x": 80,
         "y": 240
       }
     },
@@ -129,8 +118,8 @@
       "traversable": false,
       "position":
       {
-        "x": 880,
-        "y": 640
+        "x": 0,
+        "y": 240
       }
     },
     {
@@ -140,8 +129,8 @@
       "traversable": false,
       "position":
       {
-        "x": 960,
-        "y": 640
+        "x": 0,
+        "y": 160
       }
     },
     {
@@ -151,7 +140,7 @@
       "traversable": false,
       "position":
       {
-        "x": 960,
+        "x": 560,
         "y": 560
       }
     },
@@ -162,74 +151,162 @@
       "traversable": false,
       "position":
       {
-        "x": 1040,
+        "x": 320,
+        "y": 640
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 320,
+        "y": 720
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 400,
+        "y": 720
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 480,
+        "y": 720
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 560,
+        "y": 720
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 560,
+        "y": 640
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 400,
+        "y": 640
+      }
+    },
+    {
+      "type": 1,
+      "health": 100,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 480,
+        "y": 640
+      }
+    },
+    {
+      "type": 2,
+      "health": 200,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 640,
         "y": 560
       }
     },
     {
-      "type": 1,
-      "health": 100,
+      "type": 2,
+      "health": 200,
       "damage": 0,
       "traversable": false,
       "position":
       {
-        "x": 1040,
-        "y": 480
+        "x": 720,
+        "y": 560
       }
     },
     {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 1120,
-        "y": 480
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 1120,
-        "y": 400
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 1200,
-        "y": 400
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
-      "damage": 0,
-      "traversable": false,
-      "position":
-      {
-        "x": 1200,
-        "y": 320
-      }
-    },
-    {
-      "type": 1,
-      "health": 100,
+      "type": 3,
+      "health": 150,
       "damage": 0,
       "traversable": false,
       "position":
       {
         "x": 800,
-        "y": 640
+        "y": 560
+      }
+    },
+    {
+      "type": 3,
+      "health": 150,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 880,
+        "y": 560
+      }
+    },
+    {
+      "type": 4,
+      "health": 50,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 960,
+        "y": 560
+      }
+    },
+    {
+      "type": 4,
+      "health": 50,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 960,
+        "y": 480
+      }
+    },
+    {
+      "type": 4,
+      "health": 50,
+      "damage": 0,
+      "traversable": false,
+      "position":
+      {
+        "x": 960,
+        "y": 400
       }
     },
     {
@@ -239,8 +316,8 @@
       "traversable": true,
       "position":
       {
-        "x": 800,
-        "y": 560
+        "x": 320,
+        "y": 480
       }
     },
     {
@@ -250,7 +327,7 @@
       "traversable": true,
       "position":
       {
-        "x": 320,
+        "x": 80,
         "y": 160
       }
     }

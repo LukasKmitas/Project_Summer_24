@@ -2,7 +2,7 @@
 
 Options::Options() : m_draggingSound(false), m_draggingMusic(false)
 {
-    if (!m_font.loadFromFile("ASSETS/FONTS/ariblk.ttf"))
+    if (!m_font.loadFromFile("Assets\\Fonts\\ariblk.ttf"))
     {
         std::cout << "problem loading Font" << std::endl;
     }

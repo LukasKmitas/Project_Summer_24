@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <SFML/Graphics.hpp>
+#include <SFML/Network.hpp>
 #include <array>
 #include <filesystem>
 #include "SoundManager.h"
@@ -18,12 +19,15 @@ public:
     void update(sf::Time t_deltaTime);
     void render(sf::RenderWindow& m_window);
 
-    void moveUp();
-    void moveDown();
     void handleMouseHover(sf::Vector2f m_mousePos);
     void handleRightClick(sf::Vector2f m_mousePos);
     void clearParticles();
+    void showSubmenu();
     void showLevelSelection();
+    void showMultiplayerOptions();
+    void showHostGameScreen();
+    void showJoinGameScreen();
+    void updateSessionList(const std::string& m_sessions);
 
     int getPressedItem() { return m_selectedItemIndex; }
     int handleClick(sf::Vector2f m_mousePos);
@@ -37,11 +41,13 @@ private:
     void setupMenu();
     void setupSubmenu();
     void setupLevelSelection();
+    void setupMultiplayerMenu();
+    void setupHostGameScreen();
+    void setupJoinGameScreen();
     void loadLevelFiles();
     void updateContinueButtonColor();
-    void updateSubmenuButtonColors(sf::Vector2f m_mousePos);
 
-    int m_selectedItemIndex;
+    int m_selectedItemIndex = 0;
     int m_selectedLevelIndex = -1;
 
     sf::Font m_font;
@@ -58,8 +64,30 @@ private:
     sf::Texture m_backgroundTexture;
     sf::Sprite m_backgroundSprite;
 
+    // Multiplayer screen
+    sf::RectangleShape m_hostButton;
+    sf::RectangleShape m_joinButton;
+    sf::Text m_hostButtonText;
+    sf::Text m_joinButtonText;
+
+    // Host game screen
+    sf::RectangleShape m_hostContinueButton;
+    sf::Text m_hostContinueButtonText;
+    sf::Text m_waitingForPlayerText;
+
+    // Join game screen
+    sf::Text m_findingGameText;
+    sf::RectangleShape m_sessionListBox;
+    std::vector<sf::Text> m_sessionTexts;
+    std::vector<sf::RectangleShape> m_sessionButtons;
+    sf::RectangleShape m_refreshButton;
+    sf::Text m_refreshButtonText;
+
     bool m_showSubmenu = false;
     bool m_showLevelSelection = false;
+    bool m_showMultiplayerOptions = false;
+    bool m_showHostGameScreen = false;
+    bool m_showJoinGameScreen = false;
 
 };
 

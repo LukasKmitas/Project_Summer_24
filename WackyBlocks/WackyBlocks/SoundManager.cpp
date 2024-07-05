@@ -206,8 +206,8 @@ void SoundManager::stopAllMusic()
 void SoundManager::loadAll()
 {
     // Musics
-    loadMusic("MenuMusic", "ASSETS\\AUDIO\\background1.ogg");
+    loadMusic("MenuMusic", "Assets\\Audio\\background1.ogg");
     
     // Sounds
-    loadSound("buttonClick", "ASSETS\\AUDIO\\click07.mp3");
+    loadSound("buttonClick", "Assets\\Audio\\click07.mp3");
 }

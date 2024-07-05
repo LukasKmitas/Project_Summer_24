@@ -3,7 +3,9 @@
 Game::Game() :
 	m_window{ sf::VideoMode{ SCREEN_WIDTH, SCREEN_HEIGHT, 32U }, "WackyBlocks" },
 	m_exitGame{false},
-	m_currentState{ GameState::MAIN_MENU }
+	m_currentState{ GameState::MAIN_MENU },
+	m_currentMode{ GameMode::NONE },
+	m_socket{ std::make_unique<sf::TcpSocket>() }
 {
 }
 
@@ -74,7 +76,7 @@ void Game::processEvents()
 						switch (clickedItem)
 						{
 						case 0:
-							m_mainMenu.showLevelSelection();
+							m_mainMenu.showSubmenu();
 							break;
 						case 1:
 							// Level Editor
@@ -90,18 +92,37 @@ void Game::processEvents()
 							break;
 						case 4:
 							// Single Player
-							std::cout << "SINGLE PLAYER MODE" << std::endl;
-							loadLevel(m_mainMenu.getSelectedLevelFile());
-							m_currentState = GameState::SINGLE_PLAYER;
-							m_mainMenu.clearParticles();
-							SoundManager::getInstance().stopMusic("MenuMusic");
+							m_mainMenu.showLevelSelection();
+							m_currentMode = GameMode::SINGLE_PLAYER;
 							break;
 						case 5:
 							// Multiplayer
-							std::cout << "MULTIPLAYER MODE" << std::endl;
-							m_currentState = GameState::MULTIPLAYER;
+							m_mainMenu.showMultiplayerOptions();
+							m_currentMode = GameMode::MULTIPLAYER;
+							break;
+						case 6:
+							// Continue to Single Player
+							loadLevel(m_mainMenu.getSelectedLevelFile());
+							m_currentState = GameState::GAMEPLAY;
 							m_mainMenu.clearParticles();
-							SoundManager::getInstance().stopMusic("MenuMusic");
+							break;
+						case 7:
+							// Host Game
+							m_mainMenu.showHostGameScreen();
+							startHostSession();
+							break;
+						case 8:
+							// Join Game
+							m_mainMenu.showJoinGameScreen();
+							searchHosts();
+							break;
+						case 9:
+							// Start Game after Host
+							std::cout << "Play Game" << std::endl;
+							break;
+						case 10:
+							// Refresh join game sessions
+							searchHosts();
 							break;
 						default:
 							break;
@@ -171,55 +192,7 @@ void Game::processKeys(sf::Event t_event)
 	{
 		m_exitGame = true;
 	}
-	if (sf::Keyboard::Up == t_event.key.code)
-	{
-		m_mainMenu.moveUp();
-	}
-	if (sf::Keyboard::Down == t_event.key.code)
-	{
-		m_mainMenu.moveDown();
-	}
-	if (sf::Keyboard::Return == t_event.key.code)
-	{
-		int selectedScreen = m_mainMenu.getPressedItem();
-		if (selectedScreen != -1)
-		{
-			SoundManager::getInstance().playSound("buttonClick");
-		}
-		switch (selectedScreen)
-		{
-		case 0:
-			m_mainMenu.showLevelSelection();
-			break;
-		case 1:
-			// Level Editor
-			m_currentState = GameState::LEVEL_EDITOR;
-			m_mainMenu.clearParticles();
-			break;
-		case 2:
-			// Options
-			m_currentState = GameState::OPTIONS;
-			m_mainMenu.clearParticles();
-			break;
-		case 3:
-			// Exit
-			m_exitGame = true;
-			break;
-		case 4:
-			// Single Player
-			loadLevel(m_mainMenu.getSelectedLevelFile());
-			m_currentState = GameState::SINGLE_PLAYER;
-			m_mainMenu.clearParticles();
-			break;
-		case 5:
-			// Multiplayer
-			m_currentState = GameState::MULTIPLAYER;
-			m_mainMenu.clearParticles();
-			break;
-		default:
-			break;
-		}
-	}
+
 }
 
 void Game::update(sf::Time t_deltaTime)
@@ -241,9 +214,16 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		m_options.update(t_deltaTime);
 	}
-	else if (m_currentState == GameState::SINGLE_PLAYER)
+	else if (m_currentState == GameState::GAMEPLAY)
 	{
+		if (m_currentMode == GameMode::SINGLE_PLAYER)
+		{
+			m_player.update(t_deltaTime, m_gameBlocks);
+		}
+		else if (m_currentMode == GameMode::MULTIPLAYER)
+		{
 
+		}
 	}
 }
 
@@ -263,18 +243,19 @@ void Game::render()
 	{
 		m_options.render(m_window);
 	}
-	else if (m_currentState == GameState::SINGLE_PLAYER)
+	else if (m_currentState == GameState::GAMEPLAY)
 	{
-		for (const auto& block : m_gameBlocks)
+		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
-			m_window.draw(block.shape);
+			for (const auto& block : m_gameBlocks)
+			{
+				m_window.draw(block.shape);
+			}
+			m_player.render(m_window);
 		}
-	}
-	else if (m_currentState == GameState::MULTIPLAYER)
-	{
-		for (const auto& block : m_gameBlocks)
+		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
-			m_window.draw(block.shape);
+
 		}
 	}
 
@@ -285,7 +266,7 @@ void Game::loadLevel(const std::string& m_fileName)
 {
 	m_gameBlocks.clear();
 
-	std::ifstream inputFile("ASSETS\\SAVEFILES\\" + m_fileName);
+	std::ifstream inputFile("Assets\\SaveFiles\\" + m_fileName);
 	if (!inputFile.is_open())
 	{
 		std::cout << "Error opening file: " << m_fileName << std::endl;
@@ -350,90 +331,128 @@ void Game::loadLevel(const std::string& m_fileName)
 		block.shape.setPosition(readFloat(readValue("\"x\"", blockContent)), readFloat(readValue("\"y\"", blockContent)));
 		block.shape.setSize(sf::Vector2f(80, 80));
 
-		sf::Texture* texture = new sf::Texture();
-		bool textureLoaded = false;
-
-		switch (block.type)
+		if (block.type == BlockType::PLAYER)
 		{
-		case BlockType::DIRT:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\dirt01.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::GRANITE:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\granite.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::STONE:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\stone.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::SAND:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\sand.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::WATER:
-			block.shape.setFillColor(sf::Color(0, 0, 255));
-			textureLoaded = true;
-			break;
-		case BlockType::LAVA:
-			block.shape.setFillColor(sf::Color(255, 69, 0));
-			textureLoaded = true;
-			break;
-		case BlockType::TRAP_SPIKE:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\spike.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::TRAP_BARREL:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\barrel.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::SLIME:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\slime.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::EVIL_EYE:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\evilEye.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::SQUIG:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\squig.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::ENEMY_BOSS:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\boss1.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::HEALTH_PACK:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\healthPack.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::AMMO_PACK:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\ammoPack.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::PLAYER:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\player.png");
-			block.shape.setTexture(texture);
-			break;
-		case BlockType::END_GATE:
-			textureLoaded = texture->loadFromFile("ASSETS\\IMAGES\\portal.png");
-			block.shape.setTexture(texture);
-			break;
-		default:
-			delete texture; // Free the texture if not used
-			continue;
-		}
-
-		if (textureLoaded || block.shape.getFillColor() != sf::Color::Transparent)
-		{
-			m_gameBlocks.push_back(block);
-			std::cout << "Loaded block: " << static_cast<int>(block.type) << " at (" << block.shape.getPosition().x << ", " << block.shape.getPosition().y << ")\n";
+			m_player.setPosition(block.shape.getPosition().x, block.shape.getPosition().y);
 		}
 		else
 		{
-			std::cout << "Failed to load texture for block type: " << static_cast<int>(block.type) << std::endl;
-			delete texture;
+			sf::Texture* texture = new sf::Texture();
+			bool textureLoaded = false;
+
+			switch (block.type)
+			{
+			case BlockType::DIRT:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\dirt01.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::GRANITE:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\granite.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::STONE:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\stone.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::SAND:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\sand.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::WATER:
+				block.shape.setFillColor(sf::Color(0, 0, 255));
+				textureLoaded = true;
+				break;
+			case BlockType::LAVA:
+				block.shape.setFillColor(sf::Color(255, 69, 0));
+				textureLoaded = true;
+				break;
+			case BlockType::TRAP_SPIKE:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\spike.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::TRAP_BARREL:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\barrel.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::SLIME:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\slime.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::EVIL_EYE:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\evilEye.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::SQUIG:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\squig.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::ENEMY_BOSS:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\boss1.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::HEALTH_PACK:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\healthPack.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::AMMO_PACK:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\ammoPack.png");
+				block.shape.setTexture(texture);
+				break;
+			case BlockType::END_GATE:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\portal.png");
+				block.shape.setTexture(texture);
+				break;
+			default:
+				break;
+			}
+
+			if (textureLoaded || block.shape.getFillColor() != sf::Color::Transparent)
+			{
+				m_gameBlocks.push_back(block);
+				std::cout << "Loaded block: " << static_cast<int>(block.type) << " at (" << block.shape.getPosition().x << ", " << block.shape.getPosition().y << ")\n";
+			}
+			else
+			{
+				std::cout << "Failed to load texture for block type: " << static_cast<int>(block.type) << std::endl;
+				delete texture;
+			}
 		}	
 	}
 }
 
+void Game::startHostSession()
+{
+	if (m_socket->connect(SERVER_IP, PORT) == sf::Socket::Done)
+	{
+		std::string request = "host";
+		m_socket->send(request.c_str(), request.size());
+		m_isHosting = true;
+		std::cout << "Hosting session..." << std::endl;
+	}
+	else
+	{
+		std::cout << "Failed to connect to server for hosting." << std::endl;
+	}
+}
+
+void Game::searchHosts()
+{
+	if (m_socket->connect(SERVER_IP, PORT) == sf::Socket::Done)
+	{
+		std::string request = "join";
+		m_socket->send(request.c_str(), request.size());
+
+		char buffer[2000];
+		std::size_t received;
+		if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
+		{
+			std::string sessions(buffer, received);
+			std::cout << "Available sessions:\n" << sessions << std::endl;
+			m_mainMenu.updateSessionList(sessions);
+		}
+	}
+	else
+	{
+		std::cout << "Failed to connect to server for joining." << std::endl;
+	}
+}
