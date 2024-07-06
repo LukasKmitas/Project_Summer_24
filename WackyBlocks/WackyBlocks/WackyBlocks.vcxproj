@@ -166,6 +166,7 @@
     <ClInclude Include="Options.h" />
     <ClInclude Include="ParticleManager.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="ServerData.h" />
     <ClInclude Include="SoundManager.h" />
   </ItemGroup>
   <ItemGroup>

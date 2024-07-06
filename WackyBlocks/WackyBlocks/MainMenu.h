@@ -3,11 +3,17 @@
 
 #include <iostream>
 #include <SFML/Graphics.hpp>
-#include <SFML/Network.hpp>
 #include <array>
 #include <filesystem>
+#include <mutex>
 #include "SoundManager.h"
 #include "ParticleManager.h"
+
+struct SessionInfo 
+{
+    sf::Text m_text;
+    sf::RectangleShape m_button;
+};
 
 class MainMenu
 {
@@ -27,12 +33,16 @@ public:
     void showMultiplayerOptions();
     void showHostGameScreen();
     void showJoinGameScreen();
+    void showWaitingForHostScreen();
     void updateSessionList(const std::string& m_sessions);
+    void setClientID(const std::string& m_id);
+    void setPlayerJoined(bool m_joined);
 
     int getPressedItem() { return m_selectedItemIndex; }
     int handleClick(sf::Vector2f m_mousePos);
     
     std::string getSelectedLevelFile();
+    std::string getSelectedSession();
 
 private:
 
@@ -69,6 +79,7 @@ private:
     sf::RectangleShape m_joinButton;
     sf::Text m_hostButtonText;
     sf::Text m_joinButtonText;
+    sf::Text m_clientIDText;
 
     // Host game screen
     sf::RectangleShape m_hostContinueButton;
@@ -78,16 +89,20 @@ private:
     // Join game screen
     sf::Text m_findingGameText;
     sf::RectangleShape m_sessionListBox;
-    std::vector<sf::Text> m_sessionTexts;
-    std::vector<sf::RectangleShape> m_sessionButtons;
+    std::vector<SessionInfo> m_sessionsInfo;
     sf::RectangleShape m_refreshButton;
     sf::Text m_refreshButtonText;
+    sf::Text m_waitingForHostText;
+
+    std::mutex m_sessionMutex;
 
     bool m_showSubmenu = false;
     bool m_showLevelSelection = false;
     bool m_showMultiplayerOptions = false;
     bool m_showHostGameScreen = false;
     bool m_showJoinGameScreen = false;
+    bool m_isPlayerJoined = false;
+    bool m_showWaitingForHost = false;
 
 };
 

@@ -7,6 +7,7 @@ Game::Game() :
 	m_currentMode{ GameMode::NONE },
 	m_socket{ std::make_unique<sf::TcpSocket>() }
 {
+	initNetwork();
 }
 
 Game::~Game()
@@ -114,15 +115,19 @@ void Game::processEvents()
 						case 8:
 							// Join Game
 							m_mainMenu.showJoinGameScreen();
-							searchHosts();
+							searchForHosts();
 							break;
 						case 9:
 							// Start Game after Host
-							std::cout << "Play Game" << std::endl;
+							sendLevelToServer();
 							break;
 						case 10:
 							// Refresh join game sessions
-							searchHosts();
+							searchForHosts();
+							break;
+						case 11:
+							// Join that session
+							joinSession(m_mainMenu.getSelectedSession());
 							break;
 						default:
 							break;
@@ -420,39 +425,96 @@ void Game::loadLevel(const std::string& m_fileName)
 	}
 }
 
-void Game::startHostSession()
+void Game::initNetwork()
 {
 	if (m_socket->connect(SERVER_IP, PORT) == sf::Socket::Done)
 	{
-		std::string request = "host";
-		m_socket->send(request.c_str(), request.size());
-		m_isHosting = true;
-		std::cout << "Hosting session..." << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to connect to server for hosting." << std::endl;
-	}
-}
-
-void Game::searchHosts()
-{
-	if (m_socket->connect(SERVER_IP, PORT) == sf::Socket::Done)
-	{
-		std::string request = "join";
+		std::cout << "Server connected" << std::endl;
+		std::string request = "init";
 		m_socket->send(request.c_str(), request.size());
 
-		char buffer[2000];
+		char buffer[128];
 		std::size_t received;
 		if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
 		{
-			std::string sessions(buffer, received);
-			std::cout << "Available sessions:\n" << sessions << std::endl;
-			m_mainMenu.updateSessionList(sessions);
+			std::string clientID(buffer, received);
+			std::cout << "Received client ID: " << clientID << std::endl;
+			m_mainMenu.setClientID(clientID);
 		}
 	}
 	else
 	{
-		std::cout << "Failed to connect to server for joining." << std::endl;
+		std::cout << "Failed to connect to server" << std::endl;
 	}
+}
+
+void Game::listenForServerMessages()
+{
+	m_isListening = true;
+	while (m_isListening)
+	{
+		char buffer[2000];
+		std::size_t received;
+		if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
+		{
+			std::string response(buffer, received);
+			std::cout << "Received response: " << response << std::endl;
+
+			if (response == "playerJoined")
+			{
+				m_mainMenu.setPlayerJoined(true);
+				std::cout << "A player has joined the session." << std::endl;
+			}
+		}
+	}
+}
+
+void Game::startHostSession()
+{
+	std::string request = "host";
+	m_socket->send(request.c_str(), request.size());
+	m_isHosting = true;
+	std::cout << "Hosting session..." << std::endl;
+	m_listenThread = std::thread(&Game::listenForServerMessages, this);
+}
+
+void Game::searchForHosts()
+{
+	std::string request = "searchForHost";
+	m_socket->send(request.c_str(), request.size());
+	m_clientThread = std::thread(&Game::handleServerSessionResponse, this);
+	m_clientThread.detach();
+}
+
+void Game::handleServerSessionResponse()
+{
+	char buffer[2000];
+	std::size_t received;
+	if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
+	{
+		std::string sessions(buffer, received);
+		std::cout << "Received sessions:\n" << sessions << std::endl;
+		m_mainMenu.updateSessionList(sessions);
+	}
+	else 
+	{
+		std::cerr << "Failed to receive session list" << std::endl;
+	}
+}
+
+void Game::joinSession(const std::string& m_sessionID)
+{
+	std::string request = "join:" + m_sessionID;
+	m_socket->send(request.c_str(), request.size());
+	m_isClient = true;
+	m_mainMenu.showWaitingForHostScreen();
+	m_listenThread = std::thread(&Game::listenForServerMessages, this);
+}
+
+void Game::sendLevelToServer()
+{
+	std::string selectedLevel = m_mainMenu.getSelectedLevelFile();
+	std::string request = "levelSelected:" + selectedLevel;
+	m_socket->send(request.c_str(), request.size());
+	loadLevel(selectedLevel);
 }

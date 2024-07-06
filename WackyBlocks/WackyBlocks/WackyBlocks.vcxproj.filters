@@ -80,6 +80,9 @@
     <ClInclude Include="GameStates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ServerData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="ASSETS\IMAGES\SFML-LOGO.png">

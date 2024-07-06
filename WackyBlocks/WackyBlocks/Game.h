@@ -2,20 +2,17 @@
 #define GAME_HPP
 
 #include <SFML/Graphics.hpp>
-#include <SFML/Network.hpp>
 #include <thread>
 #include <memory>
 #include <iostream>
 #include "Global.h"
 #include "Block.h"
 #include "GameStates.h"
+#include "ServerData.h"
 #include "MainMenu.h"
 #include "LevelEditor.h"
 #include "Options.h"
 #include "Player.h"
-
-const unsigned short PORT = 53000;
-const sf::IpAddress SERVER_IP = "127.0.0.1"; // Server IP address
 
 class Game
 {
@@ -41,6 +38,14 @@ private:
 
 	void loadLevel(const std::string& m_fileName);
 
+	void initNetwork();
+	void listenForServerMessages();
+	void startHostSession();
+	void searchForHosts();
+	void handleServerSessionResponse();
+	void joinSession(const std::string& m_sessionID);
+	void sendLevelToServer();
+
 	std::vector<Block> m_gameBlocks;
 
 	sf::RenderWindow m_window; 
@@ -50,12 +55,11 @@ private:
 	std::unique_ptr<sf::TcpSocket> m_socket;
 	std::thread m_serverThread;
 	std::thread m_clientThread;
+	std::thread m_listenThread;
 	bool m_isHosting = false;
 	bool m_isClient = false;
 	bool m_gameStarted = false;
-
-	void startHostSession();
-	void searchHosts();
+	bool m_isListening;
 
 	bool m_exitGame; 
 

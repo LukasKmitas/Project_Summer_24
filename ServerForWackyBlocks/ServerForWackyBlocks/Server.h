@@ -7,6 +7,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
+#include <random>
 
 const unsigned short PORT = 53000;
 
@@ -30,6 +31,9 @@ private:
     void handleConnections();
     void handleClient(sf::TcpSocket* m_client);
     void sendAvailableSessions(sf::TcpSocket* m_client);
+    void notifyHost(const std::string& m_sessionID);
+
+    std::string generateRandomID();
 
     sf::TcpListener m_listener;
     std::vector<std::unique_ptr<sf::TcpSocket>> m_clients;

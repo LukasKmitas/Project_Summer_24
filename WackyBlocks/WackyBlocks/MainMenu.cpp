@@ -33,7 +33,7 @@ void MainMenu::render(sf::RenderWindow& m_window)
 {
     m_window.draw(m_backgroundSprite);
 
-    if (!m_showSubmenu && !m_showLevelSelection && !m_showMultiplayerOptions && !m_showHostGameScreen && !m_showJoinGameScreen)
+    if (!m_showSubmenu && !m_showLevelSelection && !m_showMultiplayerOptions && !m_showHostGameScreen && !m_showJoinGameScreen && !m_showWaitingForHost)
     {
         for (int i = 0; i < m_menuText.size(); ++i)
         {
@@ -78,15 +78,22 @@ void MainMenu::render(sf::RenderWindow& m_window)
         m_window.draw(m_findingGameText);
         m_window.draw(m_refreshButton);
         m_window.draw(m_refreshButtonText);
-
         m_window.draw(m_sessionListBox);
-        for (int i = 0; i < m_sessionButtons.size(); ++i)
+
+        std::lock_guard<std::mutex> lock(m_sessionMutex);
+        for (const auto& sessionInfo : m_sessionsInfo)
         {
-            m_window.draw(m_sessionButtons[i]);
-            m_window.draw(m_sessionTexts[i]);
+            m_window.draw(sessionInfo.m_button);
+            m_window.draw(sessionInfo.m_text);
         }
     }
+    else if (m_showWaitingForHost)
+    {
+        m_window.draw(m_waitingForHostText);
+    }
 
+    m_window.draw(m_clientIDText);
+    
     m_particleManager.render(m_window, ParticleType::FIREFLY);
     m_particleManager.render(m_window, ParticleType::BOUNCY_BALL);
 
@@ -169,11 +176,18 @@ void MainMenu::handleMouseHover(sf::Vector2f m_mousePos)
     {
         if (m_hostContinueButton.getGlobalBounds().contains(m_mousePos))
         {
-            m_hostContinueButtonText.setFillColor(sf::Color::Green);
+            if (m_isPlayerJoined) 
+            {
+                m_hostContinueButtonText.setFillColor(sf::Color::Green);
+            }
+            else
+            {
+                m_hostContinueButtonText.setFillColor(sf::Color::Red);
+            }
         }
-        else
+        else 
         {
-            m_hostContinueButtonText.setFillColor(sf::Color::Red);
+            m_hostContinueButtonText.setFillColor(m_isPlayerJoined ? sf::Color(100, 220, 100) : sf::Color(220, 100, 100));
         }
     }
     else if (m_showJoinGameScreen)
@@ -186,15 +200,16 @@ void MainMenu::handleMouseHover(sf::Vector2f m_mousePos)
         {
             m_refreshButtonText.setFillColor(sf::Color::White);
         }
-        for (int i = 0; i < m_sessionButtons.size(); ++i)
+        std::lock_guard<std::mutex> lock(m_sessionMutex);
+        for (auto& sessionInfo : m_sessionsInfo)
         {
-            if (m_sessionButtons[i].getGlobalBounds().contains(m_mousePos))
+            if (sessionInfo.m_button.getGlobalBounds().contains(m_mousePos)) 
             {
-                m_sessionTexts[i].setFillColor(sf::Color::Red);
+                sessionInfo.m_text.setFillColor(sf::Color::Red);
             }
-            else
+            else 
             {
-                m_sessionTexts[i].setFillColor(sf::Color::White);
+                sessionInfo.m_text.setFillColor(sf::Color::White);
             }
         }
     }
@@ -260,9 +275,18 @@ int MainMenu::handleClick(sf::Vector2f m_mousePos)
         {
             if (m_selectedLevelIndex != -1)
             {
-                m_showLevelSelection = false;
-                m_showSubmenu = false;
-                return 6; // continue button clicked
+                if (m_isPlayerJoined)
+                {
+                    m_showLevelSelection = false;
+                    return 9;
+                }
+                else
+                {
+                    // Single Player part
+                    m_showLevelSelection = false;
+                    m_showSubmenu = false;
+                    return 6;
+                }
             }
         }
     }
@@ -283,9 +307,10 @@ int MainMenu::handleClick(sf::Vector2f m_mousePos)
     }
     else if (m_showHostGameScreen)
     {
-        if (m_hostContinueButton.getGlobalBounds().contains(m_mousePos))
+        if (m_hostContinueButton.getGlobalBounds().contains(m_mousePos) && m_isPlayerJoined)
         {
-            return 9;
+            m_showHostGameScreen = false;
+            m_showLevelSelection = true;
         }
     }
     else if (m_showJoinGameScreen)
@@ -294,11 +319,15 @@ int MainMenu::handleClick(sf::Vector2f m_mousePos)
         {
             return 10;
         }
-        for (int i = 0; i < m_sessionButtons.size(); ++i)
+        std::lock_guard<std::mutex> lock(m_sessionMutex);
+        for (int i = 0; i < m_sessionsInfo.size(); ++i) 
         {
-            if (m_sessionButtons[i].getGlobalBounds().contains(m_mousePos))
+            if (m_sessionsInfo[i].m_button.getGlobalBounds().contains(m_mousePos))
             {
-                std::cout << "Joining session: " << m_sessionTexts[i].getString().toAnsiString() << std::endl;
+                std::cout << "Joining session: " << m_sessionsInfo[i].m_text.getString().toAnsiString() << std::endl;
+                m_showJoinGameScreen = false;
+                m_isPlayerJoined = true;
+                return 11;
             }
         }
     }
@@ -311,6 +340,22 @@ std::string MainMenu::getSelectedLevelFile()
     if (m_selectedLevelIndex != -1)
     {
         return m_levelTexts[m_selectedLevelIndex].getString();
+    }
+    return "";
+}
+
+std::string MainMenu::getSelectedSession()
+{
+    std::lock_guard<std::mutex> lock(m_sessionMutex);
+    for (const auto& sessionInfo : m_sessionsInfo)
+    {
+        std::string sessionText = sessionInfo.m_text.getString().toAnsiString();
+        size_t pos = sessionText.find('(');
+        if (pos != std::string::npos)
+        {
+            sessionText = sessionText.substr(10, pos - 11);
+        }
+        return sessionText;
     }
     return "";
 }
@@ -345,40 +390,67 @@ void MainMenu::showJoinGameScreen()
     m_showJoinGameScreen = true;
 }
 
+void MainMenu::showWaitingForHostScreen()
+{
+    m_showWaitingForHost = true;
+}
+
 void MainMenu::updateSessionList(const std::string& m_sessions)
 {
-    m_sessionTexts.clear();
-    m_sessionButtons.clear();
+    std::lock_guard<std::mutex> lock(m_sessionMutex);
+    m_sessionsInfo.clear();
 
     std::istringstream stream(m_sessions);
     std::string session;
-    float buttonWidth = 550.0f;
+    float buttonWidth = 650.0f;
     float buttonHeight = 50.0f;
     float outlineThickness = 2.0f;
-    float xPosition = m_sessionListBox.getPosition().x + 20.0f;
-    float yPosition = m_sessionListBox.getPosition().y + 20.0f;
+    float xPosition = SCREEN_WIDTH / 2;
+    float yPosition = m_sessionListBox.getPosition().y - m_sessionListBox.getSize().y / 2 + 40.0f;
+    float xOffset = 0.0f;
     float yOffset = 60.0f;
 
     int index = 0;
     while (std::getline(stream, session))
     {
-        sf::Text sessionText;
-        sessionText.setFont(m_font);
-        sessionText.setFillColor(sf::Color::White);
-        sessionText.setString("Session " + std::to_string(index + 1) + ": " + session);
-        sessionText.setPosition(xPosition + outlineThickness, yPosition + index * yOffset + outlineThickness);
+        SessionInfo sessionInfo;
 
-        sf::RectangleShape sessionButton;
-        sessionButton.setSize(sf::Vector2f(buttonWidth, buttonHeight));
-        sessionButton.setFillColor(sf::Color::Transparent);
-        sessionButton.setOutlineColor(sf::Color::Red);
-        sessionButton.setOutlineThickness(outlineThickness);
-        sessionButton.setPosition(xPosition, yPosition + index * yOffset);
+        sessionInfo.m_text.setFont(m_font);
+        sessionInfo.m_text.setFillColor(sf::Color::White);
+        sessionInfo.m_text.setString("Session " + std::to_string(index + 1) + ": " + session);
+        sessionInfo.m_text.setPosition(xPosition + outlineThickness, yPosition + index * yOffset + outlineThickness - 10);
+        sessionInfo.m_text.setOrigin(sessionInfo.m_text.getGlobalBounds().width / 2, sessionInfo.m_text.getGlobalBounds().height / 2);
 
-        m_sessionTexts.push_back(sessionText);
-        m_sessionButtons.push_back(sessionButton);
+        sessionInfo.m_button.setSize(sf::Vector2f(buttonWidth, buttonHeight));
+        sessionInfo.m_button.setFillColor(sf::Color::Transparent);
+        sessionInfo.m_button.setOutlineColor(sf::Color::Red);
+        sessionInfo.m_button.setOutlineThickness(outlineThickness);
+        sessionInfo.m_button.setPosition(xPosition, yPosition + index * yOffset);
+        sessionInfo.m_button.setOrigin(buttonWidth / 2, buttonHeight / 2);
+
+        m_sessionsInfo.push_back(sessionInfo);
 
         ++index;
+    }
+}
+
+void MainMenu::setClientID(const std::string& m_id)
+{
+    m_clientIDText.setString("ID: " + m_id);
+}
+
+void MainMenu::setPlayerJoined(bool m_joined)
+{
+    m_isPlayerJoined = m_joined;
+    if (m_isPlayerJoined)
+    {
+        m_hostContinueButton.setOutlineColor(sf::Color::Green);
+        m_hostContinueButtonText.setFillColor(sf::Color::Green);
+    }
+    else
+    {
+        m_hostContinueButton.setOutlineColor(sf::Color::Red);
+        m_hostContinueButtonText.setFillColor(sf::Color::Red);
     }
 }
 
@@ -501,6 +573,11 @@ void MainMenu::setupMultiplayerMenu()
     m_joinButtonText.setString("Join Game");
     m_joinButtonText.setFillColor(sf::Color::White);
     m_joinButtonText.setPosition(m_joinButton.getPosition().x + 10.0f, m_joinButton.getPosition().y + 10.0f);
+    
+    m_clientIDText.setFont(m_font);
+    m_clientIDText.setString("ID: ");
+    m_clientIDText.setFillColor(sf::Color::White);
+    m_clientIDText.setPosition(50.0f, SCREEN_HEIGHT - 100.0f);
 }
 
 void MainMenu::setupHostGameScreen()
@@ -524,11 +601,11 @@ void MainMenu::setupHostGameScreen()
 
 void MainMenu::setupJoinGameScreen()
 {
-    float boxWidth = 600.0f;
-    float boxHeight = 400.0f;
+    float boxWidth = 700.0f;
+    float boxHeight = 600.0f;
     float outlineThickness = 2.0f;
-    float xPosition = SCREEN_WIDTH / 2 - boxWidth / 2;
-    float yPosition = SCREEN_HEIGHT / 2 - boxHeight / 2;
+    float xPosition = SCREEN_WIDTH / 2;
+    float yPosition = SCREEN_HEIGHT / 2;
 
     m_findingGameText.setFont(m_font);
     m_findingGameText.setString("Finding game...");
@@ -540,17 +617,25 @@ void MainMenu::setupJoinGameScreen()
     m_sessionListBox.setOutlineColor(sf::Color::White);
     m_sessionListBox.setOutlineThickness(outlineThickness);
     m_sessionListBox.setPosition(xPosition, yPosition);
+    m_sessionListBox.setOrigin(boxWidth / 2, boxHeight / 2);
 
     m_refreshButton.setSize(sf::Vector2f(150.0f, 40.0f));
     m_refreshButton.setFillColor(sf::Color::Transparent);
     m_refreshButton.setOutlineColor(sf::Color::Red);
     m_refreshButton.setOutlineThickness(2.0f);
-    m_refreshButton.setPosition(SCREEN_WIDTH / 2 - 75.0f, SCREEN_HEIGHT / 2 + 220.0f);
+    m_refreshButton.setPosition(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 200.0f);
+    m_refreshButton.setOrigin(m_refreshButton.getSize().x / 2, m_refreshButton.getSize().y / 2);
 
     m_refreshButtonText.setFont(m_font);
     m_refreshButtonText.setString("Refresh");
     m_refreshButtonText.setFillColor(sf::Color::White);
-    m_refreshButtonText.setPosition(m_refreshButton.getPosition().x + 20.0f, m_refreshButton.getPosition().y + 5.0f);
+    m_refreshButtonText.setPosition(m_refreshButton.getPosition().x, m_refreshButton.getPosition().y - 10);
+    m_refreshButtonText.setOrigin(m_refreshButtonText.getGlobalBounds().width / 2, m_refreshButtonText.getGlobalBounds().height / 2);
+
+    m_waitingForHostText.setFont(m_font);
+    m_waitingForHostText.setString("Waiting for the host to start the game");
+    m_waitingForHostText.setFillColor(sf::Color::White);
+    m_waitingForHostText.setPosition(SCREEN_WIDTH / 2 - m_waitingForHostText.getGlobalBounds().width / 2, SCREEN_HEIGHT / 2);
 }
 
 void MainMenu::loadLevelFiles()
