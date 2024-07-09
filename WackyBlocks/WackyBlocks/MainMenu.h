@@ -43,6 +43,7 @@ public:
     
     std::string getSelectedLevelFile();
     std::string getSelectedSession();
+    std::string getClientID() const;
 
 private:
 
@@ -80,6 +81,7 @@ private:
     sf::Text m_hostButtonText;
     sf::Text m_joinButtonText;
     sf::Text m_clientIDText;
+    std::string m_clientID;
 
     // Host game screen
     sf::RectangleShape m_hostContinueButton;

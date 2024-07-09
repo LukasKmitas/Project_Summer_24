@@ -320,13 +320,18 @@ int MainMenu::handleClick(sf::Vector2f m_mousePos)
             return 10;
         }
         std::lock_guard<std::mutex> lock(m_sessionMutex);
-        for (int i = 0; i < m_sessionsInfo.size(); ++i) 
+        for (int i = 0; i < m_sessionsInfo.size(); ++i)
         {
             if (m_sessionsInfo[i].m_button.getGlobalBounds().contains(m_mousePos))
             {
                 std::cout << "Joining session: " << m_sessionsInfo[i].m_text.getString().toAnsiString() << std::endl;
                 m_showJoinGameScreen = false;
                 m_isPlayerJoined = true;
+                for (auto& sessionInfo : m_sessionsInfo)
+                {
+                    sessionInfo.m_button.setFillColor(sf::Color::Transparent);
+                }
+                m_sessionsInfo[i].m_button.setFillColor(sf::Color::Green);
                 return 11;
             }
         }
@@ -349,15 +354,24 @@ std::string MainMenu::getSelectedSession()
     std::lock_guard<std::mutex> lock(m_sessionMutex);
     for (const auto& sessionInfo : m_sessionsInfo)
     {
-        std::string sessionText = sessionInfo.m_text.getString().toAnsiString();
-        size_t pos = sessionText.find('(');
-        if (pos != std::string::npos)
+        if (sessionInfo.m_button.getFillColor() == sf::Color::Green)
         {
-            sessionText = sessionText.substr(10, pos - 11);
+            std::string sessionText = sessionInfo.m_text.getString().toAnsiString();
+            size_t posStart = sessionText.find(':') + 1;
+            size_t posEnd = sessionText.find('(');
+            if (posEnd != std::string::npos && posStart != std::string::npos)
+            {
+                sessionText = sessionText.substr(posStart, posEnd - posStart - 1);
+                return sessionText;
+            }
         }
-        return sessionText;
     }
     return "";
+}
+
+std::string MainMenu::getClientID() const
+{
+    return m_clientID;
 }
 
 void MainMenu::clearParticles()
@@ -417,7 +431,7 @@ void MainMenu::updateSessionList(const std::string& m_sessions)
 
         sessionInfo.m_text.setFont(m_font);
         sessionInfo.m_text.setFillColor(sf::Color::White);
-        sessionInfo.m_text.setString("Session " + std::to_string(index + 1) + ": " + session);
+        sessionInfo.m_text.setString(session);
         sessionInfo.m_text.setPosition(xPosition + outlineThickness, yPosition + index * yOffset + outlineThickness - 10);
         sessionInfo.m_text.setOrigin(sessionInfo.m_text.getGlobalBounds().width / 2, sessionInfo.m_text.getGlobalBounds().height / 2);
 
@@ -437,6 +451,7 @@ void MainMenu::updateSessionList(const std::string& m_sessions)
 void MainMenu::setClientID(const std::string& m_id)
 {
     m_clientIDText.setString("ID: " + m_id);
+    m_clientID = m_id;
 }
 
 void MainMenu::setPlayerJoined(bool m_joined)

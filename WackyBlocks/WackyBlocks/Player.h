@@ -25,11 +25,13 @@ public:
     void update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void render(sf::RenderWindow& m_window);
 
-    void setPosition(float m_x, float m_y);
     void handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void setPosition(float m_x, float m_y);
+    void setOtherPlayerColor();
 
     sf::FloatRect getBoundingBox() const;
     sf::FloatRect getGroundDetectionBox() const;
+    sf::Vector2f getPosition() const;
 
 private:
 

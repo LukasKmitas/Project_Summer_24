@@ -5,6 +5,7 @@
 #include <thread>
 #include <memory>
 #include <iostream>
+#include <unordered_map>
 #include "Global.h"
 #include "Block.h"
 #include "GameStates.h"
@@ -31,6 +32,8 @@ private:
 	Options m_options;
 	Player m_player;
 
+	std::vector<Block> m_gameBlocks;
+
 	void processEvents();
 	void processKeys(sf::Event t_event);
 	void update(sf::Time t_deltaTime);
@@ -40,13 +43,13 @@ private:
 
 	void initNetwork();
 	void listenForServerMessages();
-	void startHostSession();
-	void searchForHosts();
+	void startHostPreparations();
+	void searchForGames();
 	void handleServerSessionResponse();
-	void joinSession(const std::string& m_sessionID);
+	void joinSession(const std::string& m_hostID);
 	void sendLevelToServer();
 
-	std::vector<Block> m_gameBlocks;
+	std::vector<std::string> split(const std::string& m_string, char m_delimiter);
 
 	sf::RenderWindow m_window; 
 	sf::Font m_ArialBlackfont;

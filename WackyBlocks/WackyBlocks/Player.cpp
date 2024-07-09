@@ -35,6 +35,11 @@ void Player::setPosition(float m_x, float m_y)
     updateBoundingBox();
 }
 
+void Player::setOtherPlayerColor()
+{
+    m_playerSprite.setColor(sf::Color::Yellow);
+}
+
 void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
 {
     bool moving = false;
@@ -121,6 +126,11 @@ sf::FloatRect Player::getBoundingBox() const
 sf::FloatRect Player::getGroundDetectionBox() const
 {
     return m_groundBoundingBox.getGlobalBounds();
+}
+
+sf::Vector2f Player::getPosition() const
+{
+    return m_playerSprite.getPosition();
 }
 
 void Player::setupPlayer()

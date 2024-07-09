@@ -27,10 +27,16 @@ void Game::run()
 		while (timeSinceLastUpdate > timePerFrame)
 		{
 			timeSinceLastUpdate -= timePerFrame;
-			processEvents();
-			update(timePerFrame);
+			if (m_window.hasFocus())
+			{
+				processEvents();
+				update(timePerFrame);
+			}
 		}
-		render();
+		if (m_window.hasFocus())
+		{
+			render();
+		}
 	}
 }
 
@@ -110,20 +116,21 @@ void Game::processEvents()
 						case 7:
 							// Host Game
 							m_mainMenu.showHostGameScreen();
-							startHostSession();
+							startHostPreparations();
 							break;
 						case 8:
 							// Join Game
 							m_mainMenu.showJoinGameScreen();
-							searchForHosts();
+							searchForGames();
 							break;
 						case 9:
 							// Start Game after Host
 							sendLevelToServer();
+							m_currentState = GameState::GAMEPLAY;
 							break;
 						case 10:
 							// Refresh join game sessions
-							searchForHosts();
+							searchForGames();
 							break;
 						case 11:
 							// Join that session
@@ -227,7 +234,7 @@ void Game::update(sf::Time t_deltaTime)
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
-
+			m_player.update(t_deltaTime, m_gameBlocks);
 		}
 	}
 }
@@ -260,6 +267,11 @@ void Game::render()
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
+			for (const auto& block : m_gameBlocks)
+			{
+				m_window.draw(block.shape);
+			}
+			m_player.render(m_window);
 
 		}
 	}
@@ -433,7 +445,7 @@ void Game::initNetwork()
 		std::string request = "init";
 		m_socket->send(request.c_str(), request.size());
 
-		char buffer[128];
+		char buffer[2000];
 		std::size_t received;
 		if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
 		{
@@ -458,18 +470,25 @@ void Game::listenForServerMessages()
 		if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
 		{
 			std::string response(buffer, received);
-			std::cout << "Received response: " << response << std::endl;
 
-			if (response == "playerJoined")
+			if (response.substr(0, 13) == "playerJoined:")
 			{
+				std::string clientID = response.substr(13);
 				m_mainMenu.setPlayerJoined(true);
-				std::cout << "A player has joined the session." << std::endl;
+				std::cout << "A player has joined the session: " << clientID << std::endl;
+			}
+			else if (response.substr(0, 14) == "levelSelected:")
+			{
+				std::string levelName = response.substr(14);
+				loadLevel(levelName); // Load the level on the client side (Join person)
+				std::cout << "Level selected: " << levelName << std::endl;
+				m_currentState = GameState::GAMEPLAY;
 			}
 		}
 	}
 }
 
-void Game::startHostSession()
+void Game::startHostPreparations()
 {
 	std::string request = "host";
 	m_socket->send(request.c_str(), request.size());
@@ -478,9 +497,9 @@ void Game::startHostSession()
 	m_listenThread = std::thread(&Game::listenForServerMessages, this);
 }
 
-void Game::searchForHosts()
+void Game::searchForGames()
 {
-	std::string request = "searchForHost";
+	std::string request = "searchForGame";
 	m_socket->send(request.c_str(), request.size());
 	m_clientThread = std::thread(&Game::handleServerSessionResponse, this);
 	m_clientThread.detach();
@@ -502,9 +521,9 @@ void Game::handleServerSessionResponse()
 	}
 }
 
-void Game::joinSession(const std::string& m_sessionID)
+void Game::joinSession(const std::string& m_hostID)
 {
-	std::string request = "join:" + m_sessionID;
+	std::string request = "join:" + m_hostID + ":" + m_mainMenu.getClientID();
 	m_socket->send(request.c_str(), request.size());
 	m_isClient = true;
 	m_mainMenu.showWaitingForHostScreen();
@@ -516,5 +535,17 @@ void Game::sendLevelToServer()
 	std::string selectedLevel = m_mainMenu.getSelectedLevelFile();
 	std::string request = "levelSelected:" + selectedLevel;
 	m_socket->send(request.c_str(), request.size());
-	loadLevel(selectedLevel);
+	loadLevel(selectedLevel); // this loads on the host side
+}
+
+std::vector<std::string> Game::split(const std::string& m_string, char m_delimiter)
+{
+	std::vector<std::string> tokens;
+	std::string token;
+	std::istringstream tokenStream(m_string);
+	while (std::getline(tokenStream, token, m_delimiter))
+	{
+		tokens.push_back(token);
+	}
+	return tokens;
 }
