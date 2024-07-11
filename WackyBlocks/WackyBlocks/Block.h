@@ -7,21 +7,22 @@
 enum class BlockType
 {
     NONE,
-    DIRT,
+    DIRT, // World blocks
     GRANITE,
     STONE,
     SAND,
     WATER,
     LAVA,
-    TRAP_SPIKE,
+    TRAP_SPIKE, // Traps
     TRAP_BARREL,
-    SLIME,
+    SKELETON, // Enemies
     EVIL_EYE,
-    SQUIG,
-    ENEMY_BOSS,
-    HEALTH_PACK,
+    GOBLIN,
+    MUSHROOM,
+    ENEMY_DEMON_BOSS,
+    HEALTH_PACK, // Misc
     AMMO_PACK,
-    PLAYER,
+    PLAYER, // Essentials
     END_GATE
 };
 

@@ -46,7 +46,7 @@ private:
 
     std::string generateRandomID();
 
-    std::vector<std::string> split(const std::string& str, char delimiter);
+    std::vector<std::string> split(const std::string& m_string, char m_delimiter);
 
     sf::TcpListener m_listener;
     std::vector<std::unique_ptr<sf::TcpSocket>> m_clients;

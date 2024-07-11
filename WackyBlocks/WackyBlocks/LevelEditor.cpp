@@ -322,19 +322,23 @@ void LevelEditor::loadTextures()
         std::cout << "Problem loading Barrel Texture" << std::endl;
     }
     // ENEMIES
-    if (!m_slimeTexture.loadFromFile("Assets\\Images\\LevelEditor\\slime.png"))
+    if (!m_skeletonTexture.loadFromFile("Assets\\Images\\LevelEditor\\skeletonIcon.png"))
     {
         std::cout << "Problem loading Basic Enemy Texture" << std::endl;
     }
-    if (!m_evilEyeTexture.loadFromFile("Assets\\Images\\LevelEditor\\evilEye.png"))
+    if (!m_evilEyeTexture.loadFromFile("Assets\\Images\\LevelEditor\\flyingEyeIcon.png"))
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
-    if (!m_squigTexture.loadFromFile("Assets\\Images\\LevelEditor\\squig.png"))
+    if (!m_goblinTexture.loadFromFile("Assets\\Images\\LevelEditor\\goblinIcon.png"))
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
-    if (!m_boss1Texture.loadFromFile("Assets\\Images\\LevelEditor\\boss1.png"))
+    if (!m_mushroomTexture.loadFromFile("Assets\\Images\\LevelEditor\\mushroomIcon.png"))
+    {
+        std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
+    }
+    if (!m_demonBossTexture.loadFromFile("Assets\\Images\\LevelEditor\\demonBossIcon.png"))
     {
         std::cout << "Problem loading Advanced Enemy Texture" << std::endl;
     }
@@ -650,25 +654,30 @@ void LevelEditor::updateTileBlocks()
     }
     else if (m_currentTab == TabType::ENEMIES)
     {
-        sf::RectangleShape enemySlimeTile;
-        enemySlimeTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        enemySlimeTile.setTexture(&m_slimeTexture);
-        m_tileBlocks.push_back(enemySlimeTile);
+        sf::RectangleShape enemySkeletonTile;
+        enemySkeletonTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        enemySkeletonTile.setTexture(&m_skeletonTexture);
+        m_tileBlocks.push_back(enemySkeletonTile);
 
         sf::RectangleShape enemyEvilEyeTile;
         enemyEvilEyeTile.setSize(sf::Vector2f(80.0f, 80.0f));
         enemyEvilEyeTile.setTexture(&m_evilEyeTexture);
         m_tileBlocks.push_back(enemyEvilEyeTile);
 
-        sf::RectangleShape enemySquigTile;
-        enemySquigTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        enemySquigTile.setTexture(&m_squigTexture);
-        m_tileBlocks.push_back(enemySquigTile);
+        sf::RectangleShape enemyGoblinTile;
+        enemyGoblinTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        enemyGoblinTile.setTexture(&m_goblinTexture);
+        m_tileBlocks.push_back(enemyGoblinTile);
 
-        sf::RectangleShape enemyBossTile;
-        enemyBossTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        enemyBossTile.setTexture(&m_boss1Texture);
-        m_tileBlocks.push_back(enemyBossTile);
+        sf::RectangleShape mushroomTile;
+        mushroomTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        mushroomTile.setTexture(&m_mushroomTexture);
+        m_tileBlocks.push_back(mushroomTile);
+
+        sf::RectangleShape demonBossTile;
+        demonBossTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        demonBossTile.setTexture(&m_demonBossTexture);
+        m_tileBlocks.push_back(demonBossTile);
     }
     else if (m_currentTab == TabType::ESSENTIALS)
     {
@@ -793,7 +802,7 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             newBlock.shape.setTexture(&m_sandTexture);
             newBlock.health = 50;
             newBlock.traversable = false;
-            newBlock.damage = 0;
+            newBlock.damage = 15;
             break;
         case BlockType::WATER:
             newBlock.shape.setFillColor(sf::Color(0, 0, 255));
@@ -819,8 +828,8 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             newBlock.traversable = false;
             newBlock.damage = 0;
             break;
-        case BlockType::SLIME:
-            newBlock.shape.setTexture(&m_slimeTexture);
+        case BlockType::SKELETON:
+            newBlock.shape.setTexture(&m_skeletonTexture);
             newBlock.health = 50;
             newBlock.traversable = false;
             newBlock.damage = 5;
@@ -831,14 +840,20 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             newBlock.traversable = false;
             newBlock.damage = 10;
             break;
-        case BlockType::SQUIG:
-            newBlock.shape.setTexture(&m_squigTexture);
+        case BlockType::GOBLIN:
+            newBlock.shape.setTexture(&m_goblinTexture);
             newBlock.health = 100;
             newBlock.traversable = false;
             newBlock.damage = 14;
             break;
-        case BlockType::ENEMY_BOSS:
-            newBlock.shape.setTexture(&m_boss1Texture);
+        case BlockType::MUSHROOM:
+            newBlock.shape.setTexture(&m_mushroomTexture);
+            newBlock.health = 100;
+            newBlock.traversable = false;
+            newBlock.damage = 8;
+            break;
+        case BlockType::ENEMY_DEMON_BOSS:
+            newBlock.shape.setTexture(&m_demonBossTexture);
             newBlock.health = 300;
             newBlock.traversable = false;
             newBlock.damage = 25;
@@ -1103,7 +1118,7 @@ void LevelEditor::updateSaveUI()
     }
 }
 
-bool LevelEditor::hasEssentialAssets(const std::vector<BlockType>& requiredAssets) const
+bool LevelEditor::hasEssentialAssets(const std::vector<BlockType>& m_requiredAssets) const
 {
     std::unordered_set<BlockType> presentAssets;
 
@@ -1112,7 +1127,7 @@ bool LevelEditor::hasEssentialAssets(const std::vector<BlockType>& requiredAsset
         presentAssets.insert(block.type);
     }
 
-    for (const auto& required : requiredAssets)
+    for (const auto& required : m_requiredAssets)
     {
         if (presentAssets.find(required) == presentAssets.end())
         {
@@ -1172,10 +1187,11 @@ BlockType LevelEditor::getBlockTypeForCurrentTab(int m_index) const
     case TabType::ENEMIES:
         switch (m_index)
         {
-        case 0: return BlockType::SLIME;
+        case 0: return BlockType::SKELETON;
         case 1: return BlockType::EVIL_EYE;
-        case 2: return BlockType::SQUIG;
-        case 3: return BlockType::ENEMY_BOSS;
+        case 2: return BlockType::GOBLIN;
+        case 3: return BlockType::MUSHROOM;
+        case 4: return BlockType::ENEMY_DEMON_BOSS;
         default: return BlockType::NONE;
         }
     case TabType::ESSENTIALS:

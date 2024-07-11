@@ -59,7 +59,7 @@ private:
     void showWarning(const std::string& m_message);
     void updateWarning(sf::Time t_deltaTime);
     void updateSaveUI();
-    bool hasEssentialAssets(const std::vector<BlockType>& requiredAssets) const;
+    bool hasEssentialAssets(const std::vector<BlockType>& m_requiredAssets) const;
     bool hasPlayer() const;
     bool hasEndGate() const;
 
@@ -101,20 +101,26 @@ private:
     sf::RectangleShape m_grid[GRID_ROWS][GRID_COLS];
     std::vector<sf::RectangleShape> m_tileBlocks;
 
+    // World blocks
     sf::Texture m_dirtTexture;
     sf::Texture m_graniteTexture;
     sf::Texture m_stoneTexture;
     sf::Texture m_sandTexture;
+    // Traps blocks
     sf::Texture m_spikeTexture;
     sf::Texture m_barrelTexture;
-    sf::Texture m_slimeTexture;
+    // Enemy blocks
+    sf::Texture m_skeletonTexture;
     sf::Texture m_evilEyeTexture;
-    sf::Texture m_squigTexture;
+    sf::Texture m_goblinTexture;
+    sf::Texture m_mushroomTexture;
+    sf::Texture m_demonBossTexture;
+    // Essetial blocks
     sf::Texture m_playerTexture;
+    sf::Texture m_endGateTexture;
+    // Misc blocks
     sf::Texture m_healthPackTexture;
     sf::Texture m_ammoPackTexture;
-    sf::Texture m_boss1Texture;
-    sf::Texture m_endGateTexture;
 
     std::vector<Block> m_mapBlocks;
     BlockType m_selectedBlockType = BlockType::NONE;

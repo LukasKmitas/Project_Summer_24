@@ -137,6 +137,30 @@ void Server::handleClient(sf::TcpSocket* m_client)
                 }
             }
         }
+        else if (request.substr(0, 13) == "playerUpdate:")
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            std::string sessionID;
+            for (const auto& pair : m_sessions)
+            {
+                if (pair.second.m_playerOneSocket == m_client)
+                {
+                    if (pair.second.m_playerTwoSocket != nullptr)
+                    {
+                        pair.second.m_playerTwoSocket->send(request.c_str(), request.size());
+                    }
+                    break;
+                }
+                else if (pair.second.m_playerTwoSocket == m_client)
+                {
+                    if (pair.second.m_playerOneSocket != nullptr)
+                    {
+                        pair.second.m_playerOneSocket->send(request.c_str(), request.size());
+                    }
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -256,23 +280,30 @@ void Server::displayClientSessions()
     std::lock_guard<std::mutex> lock(m_mutex);
     std::cout << "Multiplayer games being played currently:\n";
     int multiplayerGames = 0;
-    std::unordered_map<std::string, std::string> pairedSessions;
 
     for (const auto& session : m_sessions)
     {
         if (session.second.m_playerTwoSocket != nullptr)
         {
-            pairedSessions[session.first] = session.second.m_name;
+            std::string hostID = session.first;
+            std::string clientID;
+
+            // Find the client ID based on the playerTwoSocket
+            for (const auto& clientSession : m_sessions)
+            {
+                if (clientSession.second.m_playerOneSocket == session.second.m_playerTwoSocket)
+                {
+                    clientID = clientSession.second.m_name;
+                    break;
+                }
+            }
+
+            if (!clientID.empty())
+            {
+                std::cout << "Player 1: " << session.second.m_name << " (Host) <- Player 2: " << clientID << " (Client)" << std::endl;
+                multiplayerGames++;
+            }
         }
-    }
-
-    for (const auto& pair : pairedSessions)
-    {
-        std::string hostID = pair.first;
-        std::string clientID = pair.second;
-
-        std::cout << "Player 1: " << m_sessions[hostID].m_name << " (Host) <- Player 2: " << clientID << " (Client)" << std::endl;
-        multiplayerGames++;
     }
 
     std::cout << "There are " << multiplayerGames << " multiplayer games being played currently." << std::endl;
@@ -297,12 +328,12 @@ std::string Server::generateRandomID()
     return id;
 }
 
-std::vector<std::string> Server::split(const std::string& str, char delimiter)
+std::vector<std::string> Server::split(const std::string& m_string, char m_delimiter)
 {
     std::vector<std::string> tokens;
     std::string token;
-    std::istringstream tokenStream(str);
-    while (std::getline(tokenStream, token, delimiter))
+    std::istringstream tokenStream(m_string);
+    while (std::getline(tokenStream, token, m_delimiter))
     {
         tokens.push_back(token);
     }

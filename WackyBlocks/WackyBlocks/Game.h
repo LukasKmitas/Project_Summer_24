@@ -14,6 +14,8 @@
 #include "LevelEditor.h"
 #include "Options.h"
 #include "Player.h"
+#include "Enemy.h"
+#include "EvilEye.h"
 
 class Game
 {
@@ -31,8 +33,10 @@ private:
 	LevelEditor m_levelEditor;
 	Options m_options;
 	Player m_player;
+	Player m_otherPlayer;
 
 	std::vector<Block> m_gameBlocks;
+	std::vector<std::unique_ptr<Enemy>> m_enemies;
 
 	void processEvents();
 	void processKeys(sf::Event t_event);
@@ -41,6 +45,7 @@ private:
 
 	void loadLevel(const std::string& m_fileName);
 
+	// Server stuff
 	void initNetwork();
 	void listenForServerMessages();
 	void startHostPreparations();
@@ -48,6 +53,7 @@ private:
 	void handleServerSessionResponse();
 	void joinSession(const std::string& m_hostID);
 	void sendLevelToServer();
+	void sendPlayerUpdate();
 
 	std::vector<std::string> split(const std::string& m_string, char m_delimiter);
 

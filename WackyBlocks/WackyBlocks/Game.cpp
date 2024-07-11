@@ -8,6 +8,7 @@ Game::Game() :
 	m_socket{ std::make_unique<sf::TcpSocket>() }
 {
 	initNetwork();
+	m_otherPlayer.setOtherPlayerColor();
 }
 
 Game::~Game()
@@ -204,7 +205,6 @@ void Game::processKeys(sf::Event t_event)
 	{
 		m_exitGame = true;
 	}
-
 }
 
 void Game::update(sf::Time t_deltaTime)
@@ -231,10 +231,19 @@ void Game::update(sf::Time t_deltaTime)
 		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
 			m_player.update(t_deltaTime, m_gameBlocks);
+			for (auto& enemy : m_enemies)
+			{
+				enemy->update(t_deltaTime);
+			}
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
 			m_player.update(t_deltaTime, m_gameBlocks);
+			sendPlayerUpdate();
+			for (auto& enemy : m_enemies)
+			{
+				enemy->update(t_deltaTime);
+			}
 		}
 	}
 }
@@ -264,6 +273,10 @@ void Game::render()
 				m_window.draw(block.shape);
 			}
 			m_player.render(m_window);
+			for (auto& enemy : m_enemies)
+			{
+				enemy->render(m_window);
+			}
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
@@ -272,7 +285,11 @@ void Game::render()
 				m_window.draw(block.shape);
 			}
 			m_player.render(m_window);
-
+			m_otherPlayer.render(m_window);
+			for (auto& enemy : m_enemies)
+			{
+				enemy->render(m_window);
+			}
 		}
 	}
 
@@ -282,6 +299,7 @@ void Game::render()
 void Game::loadLevel(const std::string& m_fileName)
 {
 	m_gameBlocks.clear();
+	m_enemies.clear();
 
 	std::ifstream inputFile("Assets\\SaveFiles\\" + m_fileName);
 	if (!inputFile.is_open())
@@ -347,10 +365,15 @@ void Game::loadLevel(const std::string& m_fileName)
 		block.traversable = readBool(readValue("\"traversable\"", blockContent));
 		block.shape.setPosition(readFloat(readValue("\"x\"", blockContent)), readFloat(readValue("\"y\"", blockContent)));
 		block.shape.setSize(sf::Vector2f(80, 80));
+		block.shape.setOrigin(40, 40);
 
 		if (block.type == BlockType::PLAYER)
 		{
-			m_player.setPosition(block.shape.getPosition().x, block.shape.getPosition().y);
+			m_player.setPosition(block.shape.getPosition().x, block.shape.getPosition().y - (block.shape.getSize().y / 2));
+		}
+		else if (block.type == BlockType::EVIL_EYE)
+		{
+			m_enemies.push_back(std::make_unique<EvilEye>(block.shape.getPosition()));
 		}
 		else
 		{
@@ -391,21 +414,13 @@ void Game::loadLevel(const std::string& m_fileName)
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\barrel.png");
 				block.shape.setTexture(texture);
 				break;
-			case BlockType::SLIME:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\slime.png");
-				block.shape.setTexture(texture);
+			case BlockType::SKELETON:
 				break;
-			case BlockType::EVIL_EYE:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\evilEye.png");
-				block.shape.setTexture(texture);
+			case BlockType::GOBLIN:
 				break;
-			case BlockType::SQUIG:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\squig.png");
-				block.shape.setTexture(texture);
+			case BlockType::MUSHROOM:
 				break;
-			case BlockType::ENEMY_BOSS:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\boss1.png");
-				block.shape.setTexture(texture);
+			case BlockType::ENEMY_DEMON_BOSS:
 				break;
 			case BlockType::HEALTH_PACK:
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\healthPack.png");
@@ -484,6 +499,25 @@ void Game::listenForServerMessages()
 				std::cout << "Level selected: " << levelName << std::endl;
 				m_currentState = GameState::GAMEPLAY;
 			}
+			else if (response.substr(0, 13) == "playerUpdate:")
+			{
+				auto tokens = split(response, ':');
+				if (tokens.size() == 5)
+				{
+					float x = std::stof(tokens[1]);
+					float y = std::stof(tokens[2]);
+					int currentFrame = std::stoi(tokens[3]);
+					PlayerState state = static_cast<PlayerState>(std::stoi(tokens[4]));
+
+					if (currentFrame >= 0 && currentFrame < m_otherPlayer.getFrameCountForState(state))
+					{
+						m_otherPlayer.setPosition(x, y);
+						m_otherPlayer.updateFacingDirection(x);
+						m_otherPlayer.setCurrentFrame(currentFrame);
+						m_otherPlayer.setState(state);
+					}
+				}
+			}
 		}
 	}
 }
@@ -536,6 +570,16 @@ void Game::sendLevelToServer()
 	std::string request = "levelSelected:" + selectedLevel;
 	m_socket->send(request.c_str(), request.size());
 	loadLevel(selectedLevel); // this loads on the host side
+}
+
+void Game::sendPlayerUpdate()
+{
+	sf::Vector2f position = m_player.getPosition();
+	int currentFrame = m_player.getCurrentFrame();
+	PlayerState state = m_player.getState();
+
+	std::string playerInformation = "playerUpdate:" + std::to_string(position.x) + ":" + std::to_string(position.y) + ":" + std::to_string(currentFrame) + ":" + std::to_string(static_cast<int>(state));
+	m_socket->send(playerInformation.c_str(), playerInformation.size());
 }
 
 std::vector<std::string> Game::split(const std::string& m_string, char m_delimiter)

@@ -24,10 +24,17 @@ public:
 
     void update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void render(sf::RenderWindow& m_window);
-
     void handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+
     void setPosition(float m_x, float m_y);
     void setOtherPlayerColor();
+    void setCurrentFrame(int m_frame);
+    void setState(PlayerState m_state);
+    void updateFacingDirection(float m_x);
+
+    int getCurrentFrame() const;
+    int getFrameCountForState(PlayerState m_state) const;
+    PlayerState getState() const;
 
     sf::FloatRect getBoundingBox() const;
     sf::FloatRect getGroundDetectionBox() const;
@@ -35,7 +42,7 @@ public:
 
 private:
 
-    PlayerState m_state;
+    PlayerState m_animationState;
 
     void setupPlayer();
     void updateAnimation(sf::Time t_deltaTime);
@@ -43,6 +50,7 @@ private:
     void loadFrames();
     void updateBoundingBox();
     void applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void updateAnimationFrame();
 
     sf::Sprite m_playerSprite;
     sf::RectangleShape m_boundingBox;
@@ -65,10 +73,12 @@ private:
     int m_currentFrame = 0;
     int m_frameCount = 0;
   
+    int m_otherPlayerFacingDirection = 1;
     float m_speed = 100.0f;
     float m_jumpSpeed = 350.0f;
     float m_gravity = 10.0f;
     float m_verticalSpeed = 0.0f;
+    float m_previousX = 0.0f;
     bool m_isJumping = false;
     bool m_isFalling = false;
     bool m_facingDirection = true;
