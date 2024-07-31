@@ -17,7 +17,7 @@ enum class TabType
     TRAPS,
     ENEMIES,
     ESSENTIALS,
-    PICKUPS
+    MISCELLANEOUS
 };
 
 class LevelEditor
@@ -34,6 +34,7 @@ public:
     void handleMouseHover(sf::Vector2f m_mousePos);
     void handleMouseRelease();
     void handleTextInput(sf::Event m_event);
+    void handleKeyInput(sf::Event m_event);
 
     void reset();
     bool isBackButtonPressed() const;
@@ -44,6 +45,7 @@ private:
     void setupUI();
     void setupGrid();
     void initTileBlocks();
+    void setTileBlockPositions();
     void toggleSlider();
     void updateSliderPosition(sf::Time t_deltaTime);
     void updateTabName();
@@ -52,6 +54,10 @@ private:
     void placeBlock(sf::Vector2f m_mousePos);
     void deleteBlock(sf::Vector2f m_mousePos);
     void toggleDeleteMode();
+    void rotateSelectedBlockLeft();
+    void rotateSelectedBlockRight();
+    void drawWorldGrid(sf::RenderWindow& m_window);
+    void resetGhostTile();
 
     void setupSaveUI();
     void handleSaveBoxClick(sf::Vector2f m_mousePos);
@@ -121,7 +127,10 @@ private:
     // Misc blocks
     sf::Texture m_healthPackTexture;
     sf::Texture m_ammoPackTexture;
+    sf::Texture m_torchTexture;
+    sf::Texture m_shopTexture;
 
+    sf::RectangleShape m_ghostTile;
     std::vector<Block> m_mapBlocks;
     BlockType m_selectedBlockType = BlockType::NONE;
     int m_selectedBlockIndex = -1;
@@ -141,6 +150,7 @@ private:
     std::string m_fileNameInput;
     bool m_showSaveBox = false;
     bool m_showWarning = false;
+    bool m_isBlockSelected = false;
 
 };
 

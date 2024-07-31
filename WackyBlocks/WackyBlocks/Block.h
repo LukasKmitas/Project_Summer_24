@@ -22,6 +22,8 @@ enum class BlockType
     ENEMY_DEMON_BOSS,
     HEALTH_PACK, // Misc
     AMMO_PACK,
+    TORCH,
+    SHOP,
     PLAYER, // Essentials
     END_GATE
 };

@@ -7,8 +7,20 @@ Game::Game() :
 	m_currentMode{ GameMode::NONE },
 	m_socket{ std::make_unique<sf::TcpSocket>() }
 {
+	if (!m_font.loadFromFile("Assets\\Fonts\\ariblk.ttf"))
+	{
+		std::cout << "Error loading font" << std::endl;
+	}
 	initNetwork();
 	m_otherPlayer.setOtherPlayerColor();
+	if (!m_lightMapTexture.create(SCREEN_WIDTH, SCREEN_HEIGHT))
+	{
+		std::cout << "Error creating light map texture" << std::endl;
+	}
+	loadBackground();
+	initLevelAssets();
+	m_lightMapSprite.setTexture(m_lightMapTexture.getTexture());
+	initShop();
 }
 
 Game::~Game()
@@ -57,6 +69,7 @@ void Game::processEvents()
 		if (sf::Event::MouseMoved == newEvent.type)
 		{
 			sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
+
 			if (m_currentState == GameState::MAIN_MENU)
 			{
 				m_mainMenu.handleMouseHover(mousePos);
@@ -68,6 +81,29 @@ void Game::processEvents()
 			else if (m_currentState == GameState::OPTIONS)
 			{
 				m_options.handleMouseHover(mousePos);
+			}
+			else if (m_currentState == GameState::GAMEPLAY)
+			{
+				if (m_shopOpen)
+				{
+					for (auto& item : m_shopItems)
+					{
+						if (item.button.getGlobalBounds().contains(mousePos))
+						{
+							if (!item.purchased)
+							{
+								item.button.setFillColor(sf::Color(150, 150, 150, 255));
+							}
+						}
+						else
+						{
+							if (!item.purchased)
+							{
+								item.button.setFillColor(sf::Color(100, 100, 100, 200));
+							}
+						}
+					}
+				}
 			}
 		}
 		if (sf::Event::MouseButtonPressed == newEvent.type)
@@ -117,7 +153,7 @@ void Game::processEvents()
 						case 7:
 							// Host Game
 							m_mainMenu.showHostGameScreen();
-							startHostPreparations();
+							startHostSessions();
 							break;
 						case 8:
 							// Join Game
@@ -149,6 +185,54 @@ void Game::processEvents()
 				else if (m_currentState == GameState::OPTIONS)
 				{
 					m_options.handleMouseClick(mousePos);
+				}
+				else if (m_currentState == GameState::GAMEPLAY)
+				{
+					m_player.shootBullet(mousePos);
+					if (m_shopOpen)
+					{
+						for (auto& item : m_shopItems)
+						{
+							if (item.button.getGlobalBounds().contains(mousePos) &&
+								item.button.getPosition().y > m_shopUIBackground.getPosition().y - m_shopUIBackground.getSize().y / 2 + 45 &&
+								item.button.getPosition().y < m_shopUIBackground.getPosition().y + m_shopUIBackground.getSize().y / 2 - 40)
+							{
+								if (m_currency >= item.cost && !item.purchased)
+								{
+									m_currency -= item.cost;
+									updateCurrencyText();
+									item.purchased = true;
+									item.button.setFillColor(sf::Color::Green);
+									std::cout << "Purchased: " << item.text.getString().toAnsiString() << std::endl;
+									
+									if (item.text.getString().toAnsiString().find("Health Upgrade") != std::string::npos)
+									{
+										m_player.upgradeHealth();
+									}
+									else if (item.text.getString().toAnsiString().find("Ammo Upgrade") != std::string::npos)
+									{
+										m_player.upgradeAmmo();
+									}
+									else if (item.text.getString().toAnsiString().find("Double Jump") != std::string::npos)
+									{
+										m_player.upgradeDoubleJump();
+									}
+									else if (item.text.getString().toAnsiString().find("Extra bullet x1") != std::string::npos)
+									{
+										m_player.upgradeBullets();
+									}
+									else if (item.text.getString().toAnsiString().find("Extra bullet x2") != std::string::npos)
+									{
+										m_player.upgradeBullets();
+									}
+								}
+								else if (!item.purchased)
+								{
+									std::cout << "Not enough currency!" << std::endl;
+								}
+							}
+						}
+					}
 				}
 			}
 			if (newEvent.mouseButton.button == sf::Mouse::Right)
@@ -205,6 +289,15 @@ void Game::processKeys(sf::Event t_event)
 	{
 		m_exitGame = true;
 	}
+	else if (sf::Keyboard::E == t_event.key.code && m_showShopText)
+	{
+		m_shopOpen = !m_shopOpen;
+	}
+
+	if (m_currentState == GameState::LEVEL_EDITOR)
+	{
+		m_levelEditor.handleKeyInput(t_event);
+	}
 }
 
 void Game::update(sf::Time t_deltaTime)
@@ -231,6 +324,39 @@ void Game::update(sf::Time t_deltaTime)
 		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
 			m_player.update(t_deltaTime, m_gameBlocks);
+			if (m_shopOpen)
+			{
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+				{
+					m_scrollOffset = std::max(0.0f, m_scrollOffset - 1.0f);
+				}
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+				{
+					m_scrollOffset = std::min(m_scrollMaxOffset, m_scrollOffset + 1.0f);
+				}
+
+				for (size_t i = 0; i < m_shopItems.size(); ++i)
+				{
+					float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
+					m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
+					m_shopItems[i].text.setPosition(m_shopItems[i].button.getPosition().x + 10, m_shopItems[i].button.getPosition().y + 10);
+				}
+
+				float scrollHandleY = m_scrollBar.getPosition().y + (m_scrollOffset / m_scrollMaxOffset) * (m_scrollBar.getSize().y - 20);
+				m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, scrollHandleY);
+			}
+
+			if (m_player.isNearShop(m_shopSprite.getPosition()))
+			{
+				m_showShopText = true;
+				updateShopTextAnimation();
+			}
+			else
+			{
+				m_showShopText = false;
+				m_shopOpen = false;
+			}
+
 			for (auto& enemy : m_enemies)
 			{
 				enemy->update(t_deltaTime);
@@ -245,6 +371,9 @@ void Game::update(sf::Time t_deltaTime)
 				enemy->update(t_deltaTime);
 			}
 		}
+		updatePortalAnimation();
+		updateShopAnimation();
+		createLightMap();
 	}
 }
 
@@ -266,12 +395,10 @@ void Game::render()
 	}
 	else if (m_currentState == GameState::GAMEPLAY)
 	{
+		m_window.draw(m_backgroundSprite);
+		renderLevelAssets();
 		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
-			for (const auto& block : m_gameBlocks)
-			{
-				m_window.draw(block.shape);
-			}
 			m_player.render(m_window);
 			for (auto& enemy : m_enemies)
 			{
@@ -280,10 +407,6 @@ void Game::render()
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
-			for (const auto& block : m_gameBlocks)
-			{
-				m_window.draw(block.shape);
-			}
 			m_player.render(m_window);
 			m_otherPlayer.render(m_window);
 			for (auto& enemy : m_enemies)
@@ -291,9 +414,46 @@ void Game::render()
 				enemy->render(m_window);
 			}
 		}
+		//m_window.draw(m_lightMapSprite, sf::BlendMultiply);
+		m_player.renderHealthUI(m_window);
+		m_window.draw(m_currencyText);
+		if (m_showShopText && !m_shopOpen)
+		{
+			m_window.draw(m_shopText);
+		}
+		if (m_shopOpen)
+		{
+			m_window.draw(m_shopUIBackground);
+			m_window.draw(m_shopTitleText);
+			for (const auto& item : m_shopItems)
+			{
+				if (item.button.getPosition().y > m_shopUIBackground.getPosition().y - m_shopUIBackground.getSize().y / 2 + 45 &&
+					item.button.getPosition().y < m_shopUIBackground.getPosition().y + m_shopUIBackground.getSize().y / 2 - 40)
+				{
+					m_window.draw(item.button);
+					m_window.draw(item.text);
+				}
+			}
+			m_window.draw(m_scrollBar);
+			m_window.draw(m_scrollBarHandle);
+		}
 	}
 
 	m_window.display();
+}
+
+void Game::loadBackground()
+{
+	if (!m_backgroundTexture.loadFromFile("Assets/Images/World/dirtBackground.png"))
+	{
+		std::cout << "Error loading background texture" << std::endl;
+	}
+	m_backgroundSprite.setTexture(m_backgroundTexture);
+	m_backgroundSprite.setScale
+	(
+		m_window.getSize().x / static_cast<float>(m_backgroundTexture.getSize().x),
+		m_window.getSize().y / static_cast<float>(m_backgroundTexture.getSize().y)
+	);
 }
 
 void Game::loadLevel(const std::string& m_fileName)
@@ -310,12 +470,10 @@ void Game::loadLevel(const std::string& m_fileName)
 
 	std::cout << "Opening save file: " << m_fileName << std::endl;
 
-	std::stringstream buffer;
-	buffer << inputFile.rdbuf();
-	std::string fileContent = buffer.str();
+	std::string fileContent((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
 	inputFile.close();
 
-	auto readValue = [](const std::string& key, const std::string& content) -> std::string 
+	auto readValue = [](const std::string& key, const std::string& content) -> std::string
 		{
 			auto start = content.find(key) + key.length() + 1;
 			auto end = content.find_first_of(",}", start);
@@ -373,7 +531,25 @@ void Game::loadLevel(const std::string& m_fileName)
 		}
 		else if (block.type == BlockType::EVIL_EYE)
 		{
-			m_enemies.push_back(std::make_unique<EvilEye>(block.shape.getPosition()));
+			m_enemies.push_back(std::make_unique<EvilEye>(block.shape.getPosition(), m_gameBlocks));
+		}
+		else if (block.type == BlockType::END_GATE)
+		{
+			m_portalSprite.setPosition(block.shape.getPosition());
+			m_portalSprite.setOrigin(m_portalSprite.getGlobalBounds().width / 2, m_portalSprite.getGlobalBounds().height / 2);
+			m_portalSprite.setScale(
+				block.shape.getSize().x / m_portalFrameRect.width,
+				block.shape.getSize().y / m_portalFrameRect.height
+			);
+		}
+		else if (block.type == BlockType::SHOP)
+		{
+			m_shopSprite.setPosition(block.shape.getPosition());
+			m_shopSprite.setOrigin(m_shopSprite.getGlobalBounds().width / 2, m_shopSprite.getGlobalBounds().height / 2);
+			m_shopSprite.setScale(
+				block.shape.getSize().x / m_shopFrameRect.width,
+				block.shape.getSize().y / m_shopFrameRect.height
+			);
 		}
 		else
 		{
@@ -403,7 +579,7 @@ void Game::loadLevel(const std::string& m_fileName)
 				textureLoaded = true;
 				break;
 			case BlockType::LAVA:
-				block.shape.setFillColor(sf::Color(255, 69, 0));
+				block.shape.setFillColor(sf::Color(255, 70, 0));
 				textureLoaded = true;
 				break;
 			case BlockType::TRAP_SPIKE:
@@ -414,24 +590,16 @@ void Game::loadLevel(const std::string& m_fileName)
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\barrel.png");
 				block.shape.setTexture(texture);
 				break;
-			case BlockType::SKELETON:
-				break;
-			case BlockType::GOBLIN:
-				break;
-			case BlockType::MUSHROOM:
-				break;
-			case BlockType::ENEMY_DEMON_BOSS:
-				break;
 			case BlockType::HEALTH_PACK:
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\healthPack.png");
 				block.shape.setTexture(texture);
 				break;
 			case BlockType::AMMO_PACK:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\ammoPack.png");
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\ammo.png");
 				block.shape.setTexture(texture);
 				break;
-			case BlockType::END_GATE:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\portal.png");
+			case BlockType::TORCH:
+				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\torch.png");
 				block.shape.setTexture(texture);
 				break;
 			default:
@@ -450,6 +618,187 @@ void Game::loadLevel(const std::string& m_fileName)
 			}
 		}	
 	}
+	std::vector<sf::RectangleShape> shapes;
+	for (const auto& block : m_gameBlocks)
+	{
+		shapes.push_back(block.shape);
+	}
+	m_edges = calculateEdges(shapes);
+}
+
+void Game::createLightMap()
+{
+	m_lightMapTexture.clear(sf::Color::Black);
+
+	std::vector<sf::Vertex> lightPolygon;
+
+	// Add player light
+	m_lightSource = m_player.getPosition();
+	auto playerLight = calculateLightPolygon(m_lightSource, m_edges, m_lightRadius);
+	lightPolygon.insert(lightPolygon.end(), playerLight.begin(), playerLight.end());
+
+	// Add torch lights
+	for (const auto& block : m_gameBlocks)
+	{
+		if (block.type == BlockType::TORCH)
+		{
+			auto torchLight = calculateLightPolygon(block.shape.getPosition(), m_edges, m_lightRadius);
+			lightPolygon.insert(lightPolygon.end(), torchLight.begin(), torchLight.end());
+		}
+	}
+
+	if (!lightPolygon.empty())
+	{
+		m_lightMapTexture.draw(&lightPolygon[0], lightPolygon.size(), sf::TrianglesFan, sf::BlendAlpha);
+	}
+
+	m_lightMapTexture.display();
+}
+
+void Game::initLevelAssets()
+{
+	if (!m_portalTexture.loadFromFile("Assets\\Images\\World\\portalRings2.png"))
+	{
+		std::cout << "Error loading portal texture" << std::endl;
+	}
+	m_portalFrameRect = sf::IntRect(0, 0, 32, 32);
+	m_portalSprite.setTexture(m_portalTexture);
+	m_portalSprite.setTextureRect(m_portalFrameRect);
+
+	if (!m_shopTexture.loadFromFile("Assets\\Images\\World\\shop_anim.png"))
+	{
+		std::cout << "Error loading shop texture" << std::endl;
+	}
+	m_shopFrameRect = sf::IntRect(0, 0, 118, 128);
+	m_shopSprite.setTexture(m_shopTexture);
+	m_shopSprite.setTextureRect(m_shopFrameRect);
+
+	m_shopText.setFont(m_font);
+	m_shopText.setString("Press E");
+	m_shopText.setCharacterSize(24);
+	m_shopText.setFillColor(sf::Color::White);
+}
+
+void Game::initShop()
+{
+	m_currencyText.setFont(m_font);
+	m_currencyText.setCharacterSize(25);
+	m_currencyText.setFillColor(sf::Color::White);
+	m_currencyText.setPosition(m_window.getSize().x - 250, 10);
+	updateCurrencyText();
+
+	// Shop UI
+	m_shopUIBackground.setSize(sf::Vector2f(400, 300));
+	m_shopUIBackground.setFillColor(sf::Color(0, 0, 0, 200));
+	m_shopUIBackground.setOutlineColor(sf::Color::White);
+	m_shopUIBackground.setOutlineThickness(2);
+	m_shopUIBackground.setPosition(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+	m_shopUIBackground.setOrigin(m_shopUIBackground.getSize().x / 2, m_shopUIBackground.getSize().y / 2);
+
+	m_shopTitleText.setFont(m_font);
+	m_shopTitleText.setString("SHOP");
+	m_shopTitleText.setStyle(sf::Text::Underlined);
+	m_shopTitleText.setCharacterSize(24);
+	m_shopTitleText.setFillColor(sf::Color::White);
+	m_shopTitleText.setPosition(SCREEN_WIDTH / 2 - m_shopTitleText.getGlobalBounds().width / 2, SCREEN_HEIGHT / 2 - 130);
+
+	// shop items
+	std::vector<std::pair<std::string, int>> items =
+	{
+		{"Health Upgrade", 100},
+		{"Ammo Upgrade", 100},
+		{"Double Jump", 80},
+		{"Energy Wave Attack", 200},
+		{"Extra bullet x1", 250},
+		{"Extra bullet x2", 250},
+		{"Small Shield", 130},
+	};
+
+	for (size_t i = 0; i < items.size(); ++i)
+	{
+		ShopItem shopItem;
+		shopItem.button.setSize(sf::Vector2f(300, 40));
+		shopItem.button.setFillColor(sf::Color(100, 100, 100, 200));
+		shopItem.button.setPosition(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2 - 100 + i * 60);
+
+		shopItem.text.setFont(m_font);
+		shopItem.text.setString(items[i].first + " - " + std::to_string(items[i].second) + " GOLD");
+		shopItem.text.setCharacterSize(15);
+		shopItem.text.setFillColor(sf::Color::White);
+		shopItem.text.setPosition(shopItem.button.getPosition().x + 10, shopItem.button.getPosition().y + 10);
+
+		shopItem.cost = items[i].second;
+
+		m_shopItems.push_back(shopItem);
+	}
+
+	m_scrollBar.setSize(sf::Vector2f(20, 200));
+	m_scrollBar.setFillColor(sf::Color::Transparent);
+	m_scrollBar.setOutlineColor(sf::Color::White);
+	m_scrollBar.setOutlineThickness(1.2f);
+	m_scrollBar.setPosition(SCREEN_WIDTH / 2 + 170, SCREEN_HEIGHT / 2 - 100);
+
+	m_scrollBarHandle.setRadius(10);
+	m_scrollBarHandle.setFillColor(sf::Color::White);
+	m_scrollBarHandle.setOrigin(10, 10);
+	m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, m_scrollBar.getPosition().y);
+
+	m_scrollMaxOffset = std::max(0.0f, (items.size() * 60.0f) - m_shopUIBackground.getSize().y + 40);
+}
+
+void Game::updateCurrencyText()
+{
+	m_currencyText.setString("Gold: " + std::to_string(m_currency));
+}
+
+void Game::updatePortalAnimation()
+{
+	sf::Time frameTime = sf::seconds(0.1f);
+
+	if (m_portalClock.getElapsedTime() >= frameTime)
+	{
+		m_portalCurrentFrame = (m_portalCurrentFrame + 1) % 5;
+		m_portalFrameRect.left = m_portalCurrentFrame * 32;
+		m_portalSprite.setTextureRect(m_portalFrameRect);
+		m_portalClock.restart();
+	}
+}
+
+void Game::updateShopAnimation()
+{
+	sf::Time frameTime = sf::seconds(0.1f);
+
+	if (m_shopClock.getElapsedTime() >= frameTime)
+	{
+		m_shopCurrentFrame = (m_shopCurrentFrame + 1) % 6;
+		m_shopFrameRect.left = m_shopCurrentFrame * 118;
+		m_shopSprite.setTextureRect(m_shopFrameRect);
+		m_shopClock.restart();
+	}
+}
+
+void Game::updateShopTextAnimation()
+{
+	m_shopTextYOffset += m_shopTextYDirection * 0.5f;
+	if (m_shopTextYOffset > 5.0f || m_shopTextYOffset < -5.0f)
+	{
+		m_shopTextYDirection *= -1.0f;
+	}
+	m_shopText.setPosition
+	(
+		m_shopSprite.getPosition().x - m_shopText.getGlobalBounds().width / 2,
+		m_shopSprite.getPosition().y - m_shopSprite.getGlobalBounds().height / 2 - 30 + m_shopTextYOffset
+	);
+}
+
+void Game::renderLevelAssets()
+{
+	for (const auto& block : m_gameBlocks)
+	{
+		m_window.draw(block.shape);
+	}
+	m_window.draw(m_portalSprite);
+	m_window.draw(m_shopSprite);
 }
 
 void Game::initNetwork()
@@ -522,7 +871,7 @@ void Game::listenForServerMessages()
 	}
 }
 
-void Game::startHostPreparations()
+void Game::startHostSessions()
 {
 	std::string request = "host";
 	m_socket->send(request.c_str(), request.size());

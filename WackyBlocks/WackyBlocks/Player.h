@@ -15,6 +15,12 @@ enum class PlayerState
     Attacking
 };
 
+struct Bullet
+{
+    sf::CircleShape shape;
+    sf::Vector2f direction;
+};
+
 class Player
 {
 public:
@@ -24,16 +30,26 @@ public:
 
     void update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void render(sf::RenderWindow& m_window);
-    void handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void renderHealthUI(sf::RenderWindow& m_window);
 
     void setPosition(float m_x, float m_y);
     void setOtherPlayerColor();
     void setCurrentFrame(int m_frame);
     void setState(PlayerState m_state);
     void updateFacingDirection(float m_x);
+    void takeDamage(int m_amount);
+    void heal(int m_amount);
+    void shootBullet(const sf::Vector2f& m_target);
+
+    bool isNearShop(const sf::Vector2f& m_shopPosition) const;
+    void upgradeHealth();
+    void upgradeBullets();
+    void upgradeAmmo();
+    void upgradeDoubleJump();
 
     int getCurrentFrame() const;
     int getFrameCountForState(PlayerState m_state) const;
+    int getHealth() const;
     PlayerState getState() const;
 
     sf::FloatRect getBoundingBox() const;
@@ -43,23 +59,39 @@ public:
 private:
 
     PlayerState m_animationState;
+    std::vector<Bullet> m_bullets;
 
+    void handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void setupPlayer();
+    void setupHealth();
+    void setupAmmo();
     void updateAnimation(sf::Time t_deltaTime);
     void loadTextures();
     void loadFrames();
     void updateBoundingBox();
     void applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void updateAnimationFrame();
+    void updateHealthBar();
+    void updateAmmoText();
+    void updateBullets(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
 
     sf::Sprite m_playerSprite;
     sf::RectangleShape m_boundingBox;
     sf::RectangleShape m_groundBoundingBox;
+    sf::RectangleShape m_attackDebugRect;
+    sf::RectangleShape m_healthBarBackground;
+    sf::RectangleShape m_healthBar;
+    sf::RectangleShape m_secondaryHealthBarBackground;
+    sf::RectangleShape m_secondaryHealthBar;
     sf::Texture m_idleTexture;
     sf::Texture m_jumpTexture;
     sf::Texture m_runTexture;
     sf::Texture m_attackTexture;
     sf::Texture m_fallingTexture;
+
+    sf::Font m_font;
+    sf::Text m_healthText;
+    sf::Text m_ammoText;
 
     // Animation data
     std::vector<sf::IntRect> m_idleFrames;
@@ -70,18 +102,32 @@ private:
 
     sf::Time m_frameTime = sf::seconds(0.1f);
     sf::Time m_currentFrameTime = sf::Time::Zero;
+    sf::Time m_attackDuration = sf::seconds(0.4f);
+    sf::Time m_attackElapsed = sf::Time::Zero;
     int m_currentFrame = 0;
     int m_frameCount = 0;
   
     int m_otherPlayerFacingDirection = 1;
+    int m_health = 100;
+    int m_maxHealth = 100;
+    int m_currentAmmo = 100;
+    int m_totalAmmo = 100;
+    int m_extraBulletCount = 0;
     float m_speed = 100.0f;
+    float m_bulletSpeed = 500.0f;
     float m_jumpSpeed = 350.0f;
     float m_gravity = 10.0f;
     float m_verticalSpeed = 0.0f;
     float m_previousX = 0.0f;
+
     bool m_isJumping = false;
     bool m_isFalling = false;
     bool m_facingDirection = true;
+    bool m_isAttacking = false;
+    bool m_secondaryHealthBarVisible = false;
+    bool m_showAttackDebugRect = false;
+    bool m_doubleJumpUnlocked = false;
+    bool m_canDoubleJump = true;
 
 };
 

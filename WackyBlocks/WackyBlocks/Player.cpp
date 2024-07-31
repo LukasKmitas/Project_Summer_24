@@ -7,6 +7,8 @@ Player::Player()
     loadTextures();
     loadFrames();
     updateBoundingBox();
+    setupHealth();
+    setupAmmo();
     m_playerSprite.setTextureRect(m_idleFrames[0]);
 }
 
@@ -17,10 +19,15 @@ Player::~Player()
 
 void Player::update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
 {
-    handleInput(t_deltaTime, m_gameBlocks);
-    applyGravity(t_deltaTime, m_gameBlocks);
+    if (!m_isAttacking)
+    {
+        handleInput(t_deltaTime, m_gameBlocks);
+        applyGravity(t_deltaTime, m_gameBlocks);
+    }
     updateAnimation(t_deltaTime);
     updateBoundingBox();
+    updateHealthBar();
+    updateBullets(t_deltaTime, m_gameBlocks);
 }
 
 void Player::render(sf::RenderWindow& m_window)
@@ -28,6 +35,27 @@ void Player::render(sf::RenderWindow& m_window)
     m_window.draw(m_playerSprite);
     m_window.draw(m_boundingBox);
     m_window.draw(m_groundBoundingBox);
+    for (const auto& bullet : m_bullets)
+    {
+        m_window.draw(bullet.shape);
+    }
+    if (m_showAttackDebugRect)
+    {
+        m_window.draw(m_attackDebugRect);
+    }
+}
+
+void Player::renderHealthUI(sf::RenderWindow& m_window)
+{
+    m_window.draw(m_healthBarBackground);
+    m_window.draw(m_healthBar);
+    if (m_secondaryHealthBarVisible)
+    {
+        m_window.draw(m_secondaryHealthBarBackground);
+        m_window.draw(m_secondaryHealthBar);
+    }
+    m_window.draw(m_healthText);
+    m_window.draw(m_ammoText);
 }
 
 void Player::setPosition(float m_x, float m_y)
@@ -106,6 +134,8 @@ void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameB
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
     {
+        m_isAttacking = true;
+        m_attackElapsed = sf::Time::Zero;
         m_animationState = PlayerState::Attacking;
         m_playerSprite.setTexture(m_attackTexture);
         m_frameCount = 4;
@@ -133,7 +163,7 @@ void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameB
         bool collisionDetected = false;
         for (const auto& block : m_gameBlocks)
         {
-            if (block.shape.getGlobalBounds().intersects(newBounds))
+            if (!block.traversable && block.shape.getGlobalBounds().intersects(newBounds))
             {
                 collisionDetected = true;
                 break;
@@ -165,6 +195,11 @@ sf::Vector2f Player::getPosition() const
 
 void Player::setupPlayer()
 {
+    if (!m_font.loadFromFile("Assets\\Fonts\\ariblk.ttf"))
+    {
+        std::cout << "Error loading font" << std::endl;
+    }
+
     m_playerSprite.setTexture(m_idleTexture);
     m_playerSprite.setScale(2, 2);
     m_playerSprite.setOrigin(60, 40);
@@ -180,10 +215,83 @@ void Player::setupPlayer()
     m_groundBoundingBox.setFillColor(sf::Color::Transparent);
     m_groundBoundingBox.setOutlineColor(sf::Color::Magenta);
     m_groundBoundingBox.setOutlineThickness(1.0f);
+
+    m_attackDebugRect.setSize(sf::Vector2f(100, 70));
+    m_attackDebugRect.setFillColor(sf::Color::Transparent);
+    m_attackDebugRect.setOutlineColor(sf::Color::Red);
+    m_attackDebugRect.setOutlineThickness(1.0f);
+}
+
+void Player::setupHealth()
+{
+    m_healthBarBackground.setSize(sf::Vector2f(300, 20));
+    m_healthBarBackground.setFillColor(sf::Color::Black);
+    m_healthBarBackground.setOutlineColor(sf::Color::White);
+    m_healthBarBackground.setOutlineThickness(1.0f);
+    m_healthBarBackground.setPosition(10, 10);
+    m_healthBar.setSize(sf::Vector2f(300, 20));
+    m_healthBar.setFillColor(sf::Color::Green);
+    m_healthBar.setPosition(10, 10);
+
+    // hidden at the start (upgrade item)
+    m_secondaryHealthBarBackground.setSize(sf::Vector2f(60, 20));
+    m_secondaryHealthBarBackground.setFillColor(sf::Color::Black);
+    m_secondaryHealthBarBackground.setOutlineColor(sf::Color::White);
+    m_secondaryHealthBarBackground.setOutlineThickness(1.0f);
+    m_secondaryHealthBarBackground.setPosition(320, 10);
+    m_secondaryHealthBar.setSize(sf::Vector2f(60, 20));
+    m_secondaryHealthBar.setFillColor(sf::Color::Green);
+    m_secondaryHealthBar.setPosition(320, 10);
+
+    m_healthText.setFont(m_font);
+    m_healthText.setString("Health");
+    m_healthText.setCharacterSize(15);
+    m_healthText.setFillColor(sf::Color(192, 192, 192, 255));
+    m_healthText.setPosition(150 - m_healthText.getGlobalBounds().width / 2, 10);
+}
+
+void Player::setupAmmo()
+{
+    m_ammoText.setFont(m_font);
+    m_ammoText.setCharacterSize(15);
+    m_ammoText.setFillColor(sf::Color::White);
+    m_ammoText.setPosition(10, 35);
+    updateAmmoText();
 }
 
 void Player::updateAnimation(sf::Time t_deltaTime)
 {
+    if (m_isAttacking)
+    {
+        m_attackElapsed += t_deltaTime;
+        if (m_attackElapsed >= m_attackDuration)
+        {
+            m_isAttacking = false;
+            m_animationState = PlayerState::Idle;
+            m_playerSprite.setTexture(m_idleTexture);
+            m_frameCount = 10;
+            m_showAttackDebugRect = false;
+        }
+        else if (m_attackElapsed >= sf::seconds(0.1f) && m_attackElapsed < sf::seconds(0.2f))
+        {
+            m_showAttackDebugRect = true;
+            sf::Vector2f attackPosition = m_playerSprite.getPosition() - sf::Vector2f(0, -5);
+            if (m_facingDirection)
+            {
+                attackPosition.x += 20;
+            }
+            else
+            {
+                attackPosition.x -= 120;
+            }
+            m_attackDebugRect.setPosition(attackPosition);
+        }
+        else
+        {
+            m_showAttackDebugRect = false; // Hide debug rectangle outside the second frame
+        }
+    }
+
     m_currentFrameTime += t_deltaTime;
 
     if (m_currentFrameTime >= m_frameTime)
@@ -297,7 +405,7 @@ void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_game
                 collisionDetected = true;
                 if (m_verticalSpeed > 0) // Falling down
                 {
-                    newPos.y = block.shape.getPosition().y - m_boundingBox.getSize().y - 10;
+                    newPos.y = block.shape.getPosition().y - m_boundingBox.getSize().y - 50;
                     m_isFalling = false;
                     m_isJumping = false;
                     m_verticalSpeed = 0;
@@ -339,6 +447,7 @@ void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_game
             if (block.shape.getGlobalBounds().intersects(groundDetectionBounds))
             {
                 onGround = true;
+                m_canDoubleJump = true;
                 break;
             }
         }
@@ -374,6 +483,108 @@ void Player::updateAnimationFrame()
     }
 }
 
+void Player::updateHealthBar()
+{
+    float healthPercentage = static_cast<float>(m_health) / m_maxHealth;
+    float secondaryHealthPercentage = std::min(1.0f, healthPercentage / 0.2f);
+    float mainHealthPercentage = std::max(0.0f, (healthPercentage - 0.2f) / 0.8f);
+
+    m_healthBar.setSize(sf::Vector2f(300 * mainHealthPercentage, 20));
+
+    if (m_secondaryHealthBarVisible) // Update only if secondary bar is visible
+    {
+        m_secondaryHealthBar.setSize(sf::Vector2f(60 * secondaryHealthPercentage, 20));
+    }
+
+    if (mainHealthPercentage > 0.5f)
+    {
+        m_healthBar.setFillColor(sf::Color::Green);
+    }
+    else if (mainHealthPercentage > 0.25f)
+    {
+        m_healthBar.setFillColor(sf::Color::Yellow);
+    }
+    else
+    {
+        m_healthBar.setFillColor(sf::Color::Red);
+    }
+}
+
+void Player::updateAmmoText()
+{
+    m_ammoText.setString("Ammo: " + std::to_string(m_currentAmmo) + " / " + std::to_string(m_totalAmmo));
+}
+
+void Player::shootBullet(const sf::Vector2f& m_target)
+{
+    if (m_currentAmmo > 0)
+    {
+        sf::Vector2f direction = m_target - m_playerSprite.getPosition();
+        float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+        direction /= length; // Normalize
+        direction *= m_bulletSpeed;
+
+        // Main bullet
+        Bullet mainBullet;
+        mainBullet.shape.setRadius(5);
+        mainBullet.shape.setFillColor(sf::Color::Yellow);
+        mainBullet.shape.setPosition(m_playerSprite.getPosition());
+        mainBullet.shape.setOrigin(2.5f, 2.5f);
+        mainBullet.direction = direction;
+        m_bullets.push_back(mainBullet);
+
+        // Extra bullets (upgrade item)
+        float offset = 0.2f;
+        for (int i = 1; i <= m_extraBulletCount; ++i)
+        {
+            Bullet extraBullet = mainBullet;
+            sf::Vector2f extraDirection = direction;
+            if (i % 2 == 1) // Odd bullets go above
+            {
+                extraDirection.y -= offset * length;
+            }
+            else // Even bullets go below
+            {
+                extraDirection.y += offset * length;
+            }
+            extraBullet.direction = extraDirection;
+            m_bullets.push_back(extraBullet);
+        }
+
+        --m_currentAmmo;
+        updateAmmoText();
+    }
+}
+
+void Player::updateBullets(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+{
+    for (auto it = m_bullets.begin(); it != m_bullets.end();)
+    {
+        Bullet& bullet = *it;
+        bullet.shape.move(bullet.direction * t_deltaTime.asSeconds());
+
+        // Check for collision with game blocks
+        bool collision = false;
+        for (const auto& block : m_gameBlocks)
+        {
+            if (bullet.shape.getGlobalBounds().intersects(block.shape.getGlobalBounds()))
+            {
+                collision = true;
+                break;
+            }
+        }
+
+        if (collision)
+        {
+            it = m_bullets.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 void Player::updateFacingDirection(float m_x)
 {
     if (m_x < m_previousX) // Moving left
@@ -395,6 +606,57 @@ void Player::updateFacingDirection(float m_x)
     m_previousX = m_x;
 }
 
+void Player::takeDamage(int m_amount)
+{
+    m_health -= m_amount;
+    if (m_health < 0)
+    {
+        m_health = 0;
+    }
+    updateHealthBar();
+}
+
+void Player::heal(int m_amount)
+{
+    m_health += m_amount;
+    if (m_health > m_maxHealth)
+    {
+        m_health = m_maxHealth;
+    }
+    updateHealthBar();
+}
+
+bool Player::isNearShop(const sf::Vector2f& m_shopPosition) const
+{
+    float distance = std::sqrt(std::pow(m_shopPosition.x - m_playerSprite.getPosition().x, 2) + 
+                               std::pow(m_shopPosition.y - m_playerSprite.getPosition().y, 2));
+    return distance < 50.0f;
+}
+
+void Player::upgradeHealth()
+{
+    m_maxHealth = static_cast<int>(m_maxHealth * 1.2); // Increase max health by 20%
+    m_health = m_maxHealth; // Fully heal the player on upgrade
+    m_secondaryHealthBarVisible = true;
+    updateHealthBar();
+}
+
+void Player::upgradeBullets()
+{
+    ++m_extraBulletCount;
+}
+
+void Player::upgradeAmmo()
+{
+    m_totalAmmo += 20;
+    updateAmmoText();
+}
+
+void Player::upgradeDoubleJump()
+{
+    m_doubleJumpUnlocked = true;
+}
+
 int Player::getFrameCountForState(PlayerState m_state) const
 {
     switch (m_state)
@@ -412,4 +674,9 @@ int Player::getFrameCountForState(PlayerState m_state) const
     default:
         return 0;
     }
+}
+
+int Player::getHealth() const
+{
+    return m_health;
 }

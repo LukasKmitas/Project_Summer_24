@@ -151,6 +151,7 @@
     <ClCompile Include="EvilEye.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="LevelEditor.cpp" />
+    <ClCompile Include="LightHelper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainMenu.cpp" />
     <ClCompile Include="Options.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="GameStates.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="LevelEditor.h" />
+    <ClInclude Include="LightHelper.h" />
     <ClInclude Include="MainMenu.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="ParticleManager.h" />

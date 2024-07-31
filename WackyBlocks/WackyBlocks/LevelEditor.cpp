@@ -26,6 +26,13 @@ void LevelEditor::update(sf::Time t_deltaTime)
 
 void LevelEditor::render(sf::RenderWindow& m_window)
 {
+    drawWorldGrid(m_window);
+
+    if (m_isBlockSelected)
+    {
+        m_window.draw(m_ghostTile);
+    }
+
     // slider panel
     m_window.draw(m_sliderPanel);
     m_window.draw(m_tabNameText);
@@ -142,9 +149,9 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
         }
         else if (m_currentTab == TabType::ESSENTIALS)
         {
-            m_currentTab = TabType::PICKUPS;
+            m_currentTab = TabType::MISCELLANEOUS;
         }
-        else if (m_currentTab == TabType::PICKUPS)
+        else if (m_currentTab == TabType::MISCELLANEOUS)
         {
             m_currentTab = TabType::BLOCKS;
         }
@@ -158,7 +165,7 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
         // Handle switching to the previous tab
         if (m_currentTab == TabType::BLOCKS)
         {
-            m_currentTab = TabType::PICKUPS;
+            m_currentTab = TabType::MISCELLANEOUS;
         }
         else if (m_currentTab == TabType::TRAPS)
         {
@@ -172,7 +179,7 @@ void LevelEditor::handleMouseClick(sf::Vector2f m_mousePos)
         {
             m_currentTab = TabType::ENEMIES;
         }
-        else if (m_currentTab == TabType::PICKUPS)
+        else if (m_currentTab == TabType::MISCELLANEOUS)
         {
             m_currentTab = TabType::ESSENTIALS;
         }
@@ -276,6 +283,14 @@ void LevelEditor::handleMouseHover(sf::Vector2f m_mousePos)
         m_deleteButtonHovered = false;
         m_deleteButton.setFillColor(sf::Color::Transparent);
     }
+
+    if (m_isBlockSelected)
+    {
+        float gridSize = 80.0f;
+        float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + (gridSize / 2);
+        float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + (gridSize / 2);
+        m_ghostTile.setPosition(snappedX, snappedY);
+    }
 }
 
 void LevelEditor::handleMouseRelease()
@@ -351,14 +366,22 @@ void LevelEditor::loadTextures()
     {
         std::cout << "Problem loading End Gate Texture" << std::endl;
     }
-    // PICKUPS
+    // MISCELLANEOUS
     if (!m_healthPackTexture.loadFromFile("Assets\\Images\\LevelEditor\\healthPack.png"))
     {
         std::cout << "Problem loading Health Pack Texture" << std::endl;
     }
-    if (!m_ammoPackTexture.loadFromFile("Assets\\Images\\LevelEditor\\ammoPack.png"))
+    if (!m_ammoPackTexture.loadFromFile("Assets\\Images\\LevelEditor\\ammo.png"))
     {
         std::cout << "Problem loading Ammo Pack Texture" << std::endl;
+    }
+    if (!m_torchTexture.loadFromFile("Assets\\Images\\LevelEditor\\torch.png"))
+    {
+        std::cout << "Problem loading torch Texture" << std::endl;
+    }
+    if (!m_shopTexture.loadFromFile("Assets\\Images\\LevelEditor\\shop.png"))
+    {
+        std::cout << "Problem loading torch Texture" << std::endl;
     }
 }
 
@@ -501,17 +524,37 @@ void LevelEditor::initTileBlocks()
     lavaTile.setFillColor(sf::Color(255, 69, 0));
     m_tileBlocks.push_back(lavaTile);
 
+    setTileBlockPositions();
+
+    m_ghostTile.setSize(sf::Vector2f(80.0f, 80.0f));
+    m_ghostTile.setFillColor(sf::Color(255, 255, 255, 128));
+    m_ghostTile.setOrigin(40, 40);
+}
+
+void LevelEditor::setTileBlockPositions()
+{
     int tileIndex = 0;
-    for (int row = 0; row < GRID_ROWS; ++row)
+    for (int row = 0; row < GRID_ROWS; ++row) 
     {
         for (int col = 0; col < GRID_COLS; ++col)
         {
             if (tileIndex < m_tileBlocks.size())
             {
-                m_tileBlocks[tileIndex].setPosition(m_grid[row][col].getPosition());
+                sf::FloatRect gridBounds = m_grid[row][col].getGlobalBounds();
+                m_tileBlocks[tileIndex].setPosition
+                (
+                    gridBounds.left + gridBounds.width / 2,
+                    gridBounds.top + gridBounds.height / 2
+                );
                 tileIndex++;
             }
         }
+    }
+
+    for (auto& block : m_tileBlocks)
+    {
+        sf::FloatRect bounds = block.getLocalBounds();
+        block.setOrigin(bounds.width / 2, bounds.height / 2);
     }
 }
 
@@ -565,17 +608,29 @@ void LevelEditor::updateSliderPosition(sf::Time t_deltaTime)
     }
 
     // Update tile block positions
+    // Or use setTileBlockPositions instead of the below code 
     int tileIndex = 0;
-    for (int row = 0; row < GRID_ROWS; ++row)
+    for (int row = 0; row < GRID_ROWS; ++row) 
     {
-        for (int col = 0; col < GRID_COLS; ++col)
+        for (int col = 0; col < GRID_COLS; ++col) 
         {
             if (tileIndex < m_tileBlocks.size())
             {
-                m_tileBlocks[tileIndex].setPosition(m_grid[row][col].getPosition());
+                sf::FloatRect gridBounds = m_grid[row][col].getGlobalBounds();
+                m_tileBlocks[tileIndex].setPosition
+                (
+                    gridBounds.left + gridBounds.width / 2,
+                    gridBounds.top + gridBounds.height / 2
+                );
                 tileIndex++;
             }
         }
+    }
+    //setTileBlockPositions();
+
+    if (m_isBlockSelected)
+    {
+        m_ghostTile.setRotation(m_tileBlocks[m_selectedBlockIndex].getRotation());
     }
 }
 
@@ -597,9 +652,9 @@ void LevelEditor::updateTabName()
     {
         m_tabNameText.setString("Essentials");
     }
-    else if (m_currentTab == TabType::PICKUPS)
+    else if (m_currentTab == TabType::MISCELLANEOUS)
     {
-        m_tabNameText.setString("Pick Ups");
+        m_tabNameText.setString("Miscellaneous");
     }
     std::cout << "Current tab: " << m_tabNameText.getString().toAnsiString() << std::endl;
 }
@@ -607,6 +662,8 @@ void LevelEditor::updateTabName()
 void LevelEditor::updateTileBlocks()
 {
     m_tileBlocks.clear();
+    m_isBlockSelected = false;
+    resetGhostTile();
 
     if (m_currentTab == TabType::BLOCKS)
     {
@@ -691,7 +748,7 @@ void LevelEditor::updateTileBlocks()
         endGoal.setTexture(&m_endGateTexture);
         m_tileBlocks.push_back(endGoal);
     }
-    else if (m_currentTab == TabType::PICKUPS)
+    else if (m_currentTab == TabType::MISCELLANEOUS)
     {
         sf::RectangleShape healthPackTile;
         healthPackTile.setSize(sf::Vector2f(80.0f, 80.0f));
@@ -702,21 +759,19 @@ void LevelEditor::updateTileBlocks()
         ammoPackTile.setSize(sf::Vector2f(80.0f, 80.0f));
         ammoPackTile.setTexture(&m_ammoPackTexture);
         m_tileBlocks.push_back(ammoPackTile);
+
+        sf::RectangleShape torchTile;
+        torchTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        torchTile.setTexture(&m_torchTexture);
+        m_tileBlocks.push_back(torchTile);
+
+        sf::RectangleShape shopTile;
+        shopTile.setSize(sf::Vector2f(80.0f, 80.0f));
+        shopTile.setTexture(&m_shopTexture);
+        m_tileBlocks.push_back(shopTile);
     }
 
-    // Assign tiles to grid
-    int tileIndex = 0;
-    for (int row = 0; row < GRID_ROWS; ++row)
-    {
-        for (int col = 0; col < GRID_COLS; ++col)
-        {
-            if (tileIndex < m_tileBlocks.size())
-            {
-                m_tileBlocks[tileIndex].setPosition(m_grid[row][col].getPosition());
-                tileIndex++;
-            }
-        }
-    }
+    setTileBlockPositions();
 }
 
 void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
@@ -732,6 +787,8 @@ void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
                 m_selectedBlockIndex = -1;
                 m_tileBlocks[i].setOutlineColor(sf::Color::Transparent);
                 m_tileBlocks[i].setOutlineThickness(0.0f);
+                m_isBlockSelected = false;
+                resetGhostTile();
                 std::cout << "Deselected block: " << m_tabNameText.getString().toAnsiString() << " #" << (i + 1) << std::endl;
                 SoundManager::getInstance().playSound("buttonClick");
             }
@@ -742,13 +799,29 @@ void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
                 m_selectedBlockIndex = i;
                 m_tileBlocks[i].setOutlineColor(sf::Color::Yellow);
                 m_tileBlocks[i].setOutlineThickness(3.0f);
+                m_isBlockSelected = true;
+                
+                auto texture = m_tileBlocks[i].getTexture();
+                if (texture)
+                {
+                    m_ghostTile.setTexture(texture, true); // Use true to reset the texture rect
+                }
+                else 
+                {
+                    m_ghostTile.setTexture(nullptr);
+                }
+
+                // Deselect the delete button
+                m_deleteMode = false;
+                m_deleteButton.setOutlineColor(sf::Color::White);
+                m_deleteButton.setOutlineThickness(2.0f);
+
                 std::cout << "Selected block: " << m_tabNameText.getString().toAnsiString() << " #" << (i + 1) << std::endl;
                 SoundManager::getInstance().playSound("buttonClick");
             }
         }
         else
         {
-            // Remove highlight from other blocks
             m_tileBlocks[i].setOutlineColor(sf::Color::Transparent);
             m_tileBlocks[i].setOutlineThickness(0.0f);
         }
@@ -762,8 +835,8 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
     {
         // Snap the block to the grid
         float gridSize = 80.0f;
-        float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize;
-        float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize;
+        float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + (gridSize / 2);
+        float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + (gridSize / 2);
 
         // Check if a block already exists at this position and remove it
         auto it = std::remove_if(m_mapBlocks.begin(), m_mapBlocks.end(),
@@ -775,8 +848,11 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
 
         Block newBlock;
         newBlock.type = m_selectedBlockType;
-        newBlock.shape.setSize(sf::Vector2f(gridSize, gridSize));
+        newBlock.shape.setSize(sf::Vector2f(80, 80));
+        newBlock.shape.setTexture(m_tileBlocks[m_selectedBlockIndex].getTexture());
+        newBlock.shape.setRotation(m_tileBlocks[m_selectedBlockIndex].getRotation());
         newBlock.shape.setPosition(snappedX, snappedY);
+        newBlock.shape.setOrigin(40, 40);
 
         switch (m_selectedBlockType)
         {
@@ -819,43 +895,43 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
         case BlockType::TRAP_SPIKE:
             newBlock.shape.setTexture(&m_spikeTexture);
             newBlock.health = 0;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 20;
             break;
         case BlockType::TRAP_BARREL:
             newBlock.shape.setTexture(&m_barrelTexture);
             newBlock.health = 100;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 0;
             break;
         case BlockType::SKELETON:
             newBlock.shape.setTexture(&m_skeletonTexture);
             newBlock.health = 50;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 5;
             break;
         case BlockType::EVIL_EYE:
             newBlock.shape.setTexture(&m_evilEyeTexture);
             newBlock.health = 70;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 10;
             break;
         case BlockType::GOBLIN:
             newBlock.shape.setTexture(&m_goblinTexture);
             newBlock.health = 100;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 14;
             break;
         case BlockType::MUSHROOM:
             newBlock.shape.setTexture(&m_mushroomTexture);
             newBlock.health = 100;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 8;
             break;
         case BlockType::ENEMY_DEMON_BOSS:
             newBlock.shape.setTexture(&m_demonBossTexture);
             newBlock.health = 300;
-            newBlock.traversable = false;
+            newBlock.traversable = true;
             newBlock.damage = 25;
             break;
         case BlockType::HEALTH_PACK:
@@ -866,6 +942,18 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             break;
         case BlockType::AMMO_PACK:
             newBlock.shape.setTexture(&m_ammoPackTexture);
+            newBlock.health = 0;
+            newBlock.traversable = true;
+            newBlock.damage = 0;
+            break;
+        case BlockType::TORCH:
+            newBlock.shape.setTexture(&m_torchTexture);
+            newBlock.health = 0;
+            newBlock.traversable = true;
+            newBlock.damage = 0;
+            break;
+        case BlockType::SHOP:
+            newBlock.shape.setTexture(&m_shopTexture);
             newBlock.health = 0;
             newBlock.traversable = true;
             newBlock.damage = 0;
@@ -895,8 +983,8 @@ void LevelEditor::deleteBlock(sf::Vector2f m_mousePos)
 {
     // Snap the block to the grid
     float gridSize = 80.0f;
-    float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize;
-    float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize;
+    float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + (gridSize / 2);
+    float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + (gridSize / 2);
 
     // Check if a block exists at this position and remove it
     auto it = std::remove_if(m_mapBlocks.begin(), m_mapBlocks.end(),
@@ -919,6 +1007,16 @@ void LevelEditor::toggleDeleteMode()
     {
         m_deleteButton.setOutlineColor(sf::Color::Yellow);
         m_deleteButton.setOutlineThickness(3.0f);
+        // Deselect the block in the slider
+        if (m_selectedBlockIndex != -1) 
+        {
+            m_tileBlocks[m_selectedBlockIndex].setOutlineColor(sf::Color::Transparent);
+            m_tileBlocks[m_selectedBlockIndex].setOutlineThickness(0.0f);
+            m_selectedBlockType = BlockType::NONE;
+            m_selectedBlockIndex = -1;
+            m_isBlockSelected = false;
+            resetGhostTile();
+        }
         std::cout << "Delete mode enabled" << std::endl;
     }
     else
@@ -927,6 +1025,55 @@ void LevelEditor::toggleDeleteMode()
         m_deleteButton.setOutlineThickness(2.0f);
         std::cout << "Delete mode disabled" << std::endl;
     }
+}
+
+void LevelEditor::rotateSelectedBlockLeft()
+{
+    if (m_selectedBlockIndex != -1) 
+    {
+        m_tileBlocks[m_selectedBlockIndex].rotate(-90);
+    }
+}
+
+void LevelEditor::rotateSelectedBlockRight()
+{
+    if (m_selectedBlockIndex != -1) 
+    {
+        m_tileBlocks[m_selectedBlockIndex].rotate(90);
+    }
+}
+
+void LevelEditor::drawWorldGrid(sf::RenderWindow& m_window)
+{
+    sf::Color gridColor(128, 128, 128);
+    float gridSize = 80.0f;
+    for (float x = 0; x < SCREEN_WIDTH; x += gridSize) 
+    {
+        sf::Vertex line[] =
+        {
+            sf::Vertex(sf::Vector2f(x, 0), gridColor),
+            sf::Vertex(sf::Vector2f(x, SCREEN_HEIGHT), gridColor)
+        };
+        m_window.draw(line, 2, sf::Lines);
+    }
+    for (float y = 0; y < SCREEN_HEIGHT; y += gridSize)
+    {
+        sf::Vertex line[] = 
+        {
+            sf::Vertex(sf::Vector2f(0, y), gridColor),
+            sf::Vertex(sf::Vector2f(SCREEN_WIDTH, y), gridColor)
+        };
+        m_window.draw(line, 2, sf::Lines);
+    }
+}
+
+void LevelEditor::resetGhostTile()
+{
+    m_ghostTile.setTexture(nullptr);
+    m_ghostTile.setSize(sf::Vector2f(80.0f, 80.0f));
+    m_ghostTile.setFillColor(sf::Color(255, 255, 255, 128));
+    m_ghostTile.setRotation(0);
+    m_ghostTile.setOrigin(40, 40);
 }
 
 void LevelEditor::setupSaveUI()
@@ -1024,6 +1171,21 @@ void LevelEditor::handleTextInput(sf::Event m_event)
             }
             m_fileNameText.setString(m_fileNameInput);
             updateSaveUI();
+        }
+    }
+}
+
+void LevelEditor::handleKeyInput(sf::Event m_event)
+{
+    if (m_event.type == sf::Event::KeyPressed) 
+    {
+        if (m_event.key.code == sf::Keyboard::Q) 
+        {
+            rotateSelectedBlockLeft();
+        }
+        else if (m_event.key.code == sf::Keyboard::E)
+        {
+            rotateSelectedBlockRight();
         }
     }
 }
@@ -1201,11 +1363,13 @@ BlockType LevelEditor::getBlockTypeForCurrentTab(int m_index) const
         case 1: return BlockType::END_GATE;
         default: return BlockType::NONE;
         }
-    case TabType::PICKUPS:
+    case TabType::MISCELLANEOUS:
         switch (m_index)
         {
         case 0: return BlockType::HEALTH_PACK;
         case 1: return BlockType::AMMO_PACK;
+        case 2: return BlockType::TORCH;
+        case 3: return BlockType::SHOP;
         default: return BlockType::NONE;
         }
     default:

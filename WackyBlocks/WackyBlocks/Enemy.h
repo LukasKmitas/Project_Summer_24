@@ -4,6 +4,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include "Block.h"
 
 enum class EnemyState 
 {
@@ -60,9 +61,12 @@ protected:
     std::vector<sf::IntRect> m_takeHitFrames;
 
     int m_health = 100;
+    float m_speed = 100;
+
     int m_currentFrame = 0;
     sf::Time m_frameTime = sf::seconds(0.1f);
     sf::Time m_currentFrameTime = sf::Time::Zero;
+
     bool m_isDead = false;
 
 };
