@@ -12,13 +12,29 @@ enum class PlayerState
     Jumping,
     Running,
     Falling,
-    Attacking
+    Attacking,
+    Attacking2
+};
+
+enum class AttackState
+{
+    None,
+    Attack1,
+    Attack2,
 };
 
 struct Bullet
 {
     sf::CircleShape shape;
     sf::Vector2f direction;
+};
+
+struct EnergyWave
+{
+    sf::Sprite sprite;
+    sf::Vector2f direction;
+    sf::Time lifetime;
+    sf::Time elapsedTime;
 };
 
 class Player
@@ -28,7 +44,7 @@ public:
     Player();
     ~Player();
 
-    void update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void update(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks);
     void render(sf::RenderWindow& m_window);
     void renderHealthUI(sf::RenderWindow& m_window);
 
@@ -46,6 +62,7 @@ public:
     void upgradeBullets();
     void upgradeAmmo();
     void upgradeDoubleJump();
+    void upgradeEnergyWaveAttack();
 
     int getCurrentFrame() const;
     int getFrameCountForState(PlayerState m_state) const;
@@ -59,7 +76,9 @@ public:
 private:
 
     PlayerState m_animationState;
+    AttackState m_currentAttackState = AttackState::None;
     std::vector<Bullet> m_bullets;
+    std::vector<EnergyWave> m_energyWaves;
 
     void handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void setupPlayer();
@@ -73,12 +92,17 @@ private:
     void updateAnimationFrame();
     void updateHealthBar();
     void updateAmmoText();
-    void updateBullets(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks);
+    void startFirstAttack();
+    void startSecondAttack();
+    void resetCombo();
+    void launchEnergyWave();
+    void updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
 
     sf::Sprite m_playerSprite;
     sf::RectangleShape m_boundingBox;
     sf::RectangleShape m_groundBoundingBox;
-    sf::RectangleShape m_attackDebugRect;
+    sf::RectangleShape m_attackCollisionBox;
     sf::RectangleShape m_healthBarBackground;
     sf::RectangleShape m_healthBar;
     sf::RectangleShape m_secondaryHealthBarBackground;
@@ -86,8 +110,10 @@ private:
     sf::Texture m_idleTexture;
     sf::Texture m_jumpTexture;
     sf::Texture m_runTexture;
-    sf::Texture m_attackTexture;
     sf::Texture m_fallingTexture;
+    sf::Texture m_attackTexture;
+    sf::Texture m_attack2Texture;
+    sf::Texture m_energyWaveTexture;
 
     sf::Font m_font;
     sf::Text m_healthText;
@@ -97,13 +123,20 @@ private:
     std::vector<sf::IntRect> m_idleFrames;
     std::vector<sf::IntRect> m_jumpFrames;
     std::vector<sf::IntRect> m_runFrames;
-    std::vector<sf::IntRect> m_attackFrames;
     std::vector<sf::IntRect> m_fallingFrames;
+    std::vector<sf::IntRect> m_attackFrames;
+    std::vector<sf::IntRect> m_attack2Frames;
 
     sf::Time m_frameTime = sf::seconds(0.1f);
     sf::Time m_currentFrameTime = sf::Time::Zero;
     sf::Time m_attackDuration = sf::seconds(0.4f);
     sf::Time m_attackElapsed = sf::Time::Zero;
+    sf::Time m_doubleJumpDelay = sf::seconds(0.2f);
+    sf::Time m_jumpElapsedTime = sf::Time::Zero;
+    sf::Time m_comboDelay = sf::seconds(0.1f);
+    sf::Time m_comboTimeWindow = sf::seconds(0.4f);
+    sf::Time m_comboElapsedTime = sf::Time::Zero;
+
     int m_currentFrame = 0;
     int m_frameCount = 0;
   
@@ -124,10 +157,14 @@ private:
     bool m_isFalling = false;
     bool m_facingDirection = true;
     bool m_isAttacking = false;
+    bool m_isAttacking2 = false;
     bool m_secondaryHealthBarVisible = false;
-    bool m_showAttackDebugRect = false;
+    bool m_attackCollisionActivated = false;
     bool m_doubleJumpUnlocked = false;
     bool m_canDoubleJump = true;
+    bool m_firstJumpOn = false;
+    bool m_canComboAttack = false;
+    bool m_unlockedEnergyWaveAttack = false;
 
 };
 

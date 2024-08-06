@@ -864,7 +864,7 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             break;
         case BlockType::GRANITE:
             newBlock.shape.setTexture(&m_graniteTexture);
-            newBlock.health = 200;
+            newBlock.health = 120;
             newBlock.traversable = false;
             newBlock.damage = 0;
             break;
@@ -876,25 +876,25 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             break;
         case BlockType::SAND:
             newBlock.shape.setTexture(&m_sandTexture);
-            newBlock.health = 50;
+            newBlock.health = 60;
             newBlock.traversable = false;
             newBlock.damage = 15;
             break;
         case BlockType::WATER:
             newBlock.shape.setFillColor(sf::Color(0, 0, 255));
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;
         case BlockType::LAVA:
             newBlock.shape.setFillColor(sf::Color(255, 69, 0));
-            newBlock.health = 0;
-            newBlock.traversable = false;
+            newBlock.health = 100;
+            newBlock.traversable = true;
             newBlock.damage = 10;
             break;
         case BlockType::TRAP_SPIKE:
             newBlock.shape.setTexture(&m_spikeTexture);
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 20;
             break;
@@ -906,13 +906,13 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             break;
         case BlockType::SKELETON:
             newBlock.shape.setTexture(&m_skeletonTexture);
-            newBlock.health = 50;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 5;
             break;
         case BlockType::EVIL_EYE:
             newBlock.shape.setTexture(&m_evilEyeTexture);
-            newBlock.health = 70;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 10;
             break;
@@ -930,31 +930,31 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             break;
         case BlockType::ENEMY_DEMON_BOSS:
             newBlock.shape.setTexture(&m_demonBossTexture);
-            newBlock.health = 300;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 25;
             break;
         case BlockType::HEALTH_PACK:
             newBlock.shape.setTexture(&m_healthPackTexture);
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;
         case BlockType::AMMO_PACK:
             newBlock.shape.setTexture(&m_ammoPackTexture);
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;
         case BlockType::TORCH:
             newBlock.shape.setTexture(&m_torchTexture);
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;
         case BlockType::SHOP:
             newBlock.shape.setTexture(&m_shopTexture);
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;
@@ -966,7 +966,7 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             break;
         case BlockType::END_GATE:
             newBlock.shape.setTexture(&m_endGateTexture);
-            newBlock.health = 0;
+            newBlock.health = 100;
             newBlock.traversable = true;
             newBlock.damage = 0;
             break;

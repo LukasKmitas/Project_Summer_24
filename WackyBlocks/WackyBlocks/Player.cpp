@@ -17,7 +17,7 @@ Player::~Player()
 }
 
 
-void Player::update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+void Player::update(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     if (!m_isAttacking)
     {
@@ -28,6 +28,7 @@ void Player::update(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks
     updateBoundingBox();
     updateHealthBar();
     updateBullets(t_deltaTime, m_gameBlocks);
+    updateEnergyWaves(t_deltaTime, m_gameBlocks);
 }
 
 void Player::render(sf::RenderWindow& m_window)
@@ -35,13 +36,10 @@ void Player::render(sf::RenderWindow& m_window)
     m_window.draw(m_playerSprite);
     m_window.draw(m_boundingBox);
     m_window.draw(m_groundBoundingBox);
+    m_window.draw(m_attackCollisionBox);
     for (const auto& bullet : m_bullets)
     {
         m_window.draw(bullet.shape);
-    }
-    if (m_showAttackDebugRect)
-    {
-        m_window.draw(m_attackDebugRect);
     }
 }
 
@@ -56,6 +54,10 @@ void Player::renderHealthUI(sf::RenderWindow& m_window)
     }
     m_window.draw(m_healthText);
     m_window.draw(m_ammoText);
+    for (const auto& wave : m_energyWaves)
+    {
+        m_window.draw(wave.sprite);
+    }
 }
 
 void Player::setPosition(float m_x, float m_y)
@@ -103,14 +105,56 @@ void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameB
     bool moving = false;
     sf::Vector2f movement(0.f, 0.f);
 
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !m_isJumping && !m_isFalling)
+    {
+        if (m_currentAttackState == AttackState::None) // First attack
+        {
+            startFirstAttack();
+        }
+        else if (m_currentAttackState == AttackState::Attack1 && m_canComboAttack) // Second attack
+        {
+            startSecondAttack();
+        }
+    }
+
+    // Reset combo if no input received within the first attack duration
+    if (m_currentAttackState == AttackState::Attack1 && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+    {
+        m_comboElapsedTime += t_deltaTime;
+        if (m_comboElapsedTime >= m_comboTimeWindow)
+        {
+            resetCombo();
+        }
+    }
+
+    // First jump
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && !m_isJumping && !m_isFalling)
     {
         m_animationState = PlayerState::Jumping;
         m_playerSprite.setTexture(m_jumpTexture);
-        m_frameCount = 3;
+        m_frameCount = m_jumpFrames.size();
         m_verticalSpeed = -m_jumpSpeed;
         m_isJumping = true;
         m_isFalling = false;
+        m_firstJumpOn = true;
+        m_canDoubleJump = false;
+        m_jumpElapsedTime = sf::Time::Zero;
+        std::cout << "First JUMP" << std::endl;
+    }
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && m_doubleJumpUnlocked && m_canDoubleJump) // Double jump (upgradable item)
+    {
+        if (m_jumpElapsedTime >= m_doubleJumpDelay)
+        {
+            m_animationState = PlayerState::Jumping;
+            m_playerSprite.setTexture(m_jumpTexture);
+            m_frameCount = m_jumpFrames.size();
+            m_verticalSpeed = -m_jumpSpeed;
+            m_isJumping = true;
+            m_isFalling = false;
+            m_canDoubleJump = false;
+            m_firstJumpOn = false;
+            std::cout << "Second JUMP" << std::endl;
+        }
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
     {
@@ -132,19 +176,11 @@ void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameB
         }
         moving = true;
     }
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-    {
-        m_isAttacking = true;
-        m_attackElapsed = sf::Time::Zero;
-        m_animationState = PlayerState::Attacking;
-        m_playerSprite.setTexture(m_attackTexture);
-        m_frameCount = 4;
-    }
-    else if (!m_isJumping && !m_isFalling)
+    else if (!m_isJumping && !m_isFalling && !m_isAttacking && !m_isAttacking2)
     {
         m_animationState = PlayerState::Idle;
         m_playerSprite.setTexture(m_idleTexture);
-        m_frameCount = 10;
+        m_frameCount = m_idleFrames.size();
     }
 
     if (moving)
@@ -153,7 +189,7 @@ void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameB
         {
             m_animationState = PlayerState::Running;
             m_playerSprite.setTexture(m_runTexture);
-            m_frameCount = 10;
+            m_frameCount = m_runFrames.size();
         }
 
         sf::Vector2f newPos = m_playerSprite.getPosition() + movement;
@@ -174,6 +210,16 @@ void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameB
         {
             m_playerSprite.setPosition(newPos);
             updateBoundingBox();
+        }
+    }
+
+    // Update jump timer
+    if (m_firstJumpOn)
+    {
+        m_jumpElapsedTime += t_deltaTime;
+        if (m_jumpElapsedTime >= m_doubleJumpDelay)
+        {
+            m_canDoubleJump = true;
         }
     }
 }
@@ -216,10 +262,10 @@ void Player::setupPlayer()
     m_groundBoundingBox.setOutlineColor(sf::Color::Magenta);
     m_groundBoundingBox.setOutlineThickness(1.0f);
 
-    m_attackDebugRect.setSize(sf::Vector2f(100, 70));
-    m_attackDebugRect.setFillColor(sf::Color::Transparent);
-    m_attackDebugRect.setOutlineColor(sf::Color::Red);
-    m_attackDebugRect.setOutlineThickness(1.0f);
+    m_attackCollisionBox.setSize(sf::Vector2f(100, 70));
+    m_attackCollisionBox.setFillColor(sf::Color::Transparent);
+    m_attackCollisionBox.setOutlineColor(sf::Color::Red);
+    m_attackCollisionBox.setOutlineThickness(1.0f);
 }
 
 void Player::setupHealth()
@@ -261,42 +307,28 @@ void Player::setupAmmo()
 
 void Player::updateAnimation(sf::Time t_deltaTime)
 {
-    if (m_isAttacking)
+    m_currentFrameTime += t_deltaTime;
+
+    if (m_isAttacking || m_isAttacking2)
     {
         m_attackElapsed += t_deltaTime;
-        if (m_attackElapsed >= m_attackDuration)
+
+        // Check for attack duration completion
+        if (m_isAttacking && m_attackElapsed >= m_attackDuration)
         {
             m_isAttacking = false;
-            m_animationState = PlayerState::Idle;
-            m_playerSprite.setTexture(m_idleTexture);
-            m_frameCount = 10;
-            m_showAttackDebugRect = false;
+            m_canComboAttack = true;
+            std::cout << "First Attack Complete, ready for 2nd attack" << std::endl;
         }
-        else if (m_attackElapsed >= sf::seconds(0.1f) && m_attackElapsed < sf::seconds(0.2f))
+        else if (m_isAttacking2 && m_attackElapsed >= m_attackDuration * 1.5f)
         {
-            m_showAttackDebugRect = true;
-            sf::Vector2f attackPosition = m_playerSprite.getPosition() - sf::Vector2f(0, -5);
-            if (m_facingDirection)
-            {
-                attackPosition.x += 20;
-            }
-            else
-            {
-                attackPosition.x -= 120;
-            }
-            m_attackDebugRect.setPosition(attackPosition);
-        }
-        else
-        {
-            m_showAttackDebugRect = false; // Hide debug rectangle outside the second frame
+            resetCombo();
         }
     }
 
-    m_currentFrameTime += t_deltaTime;
-
     if (m_currentFrameTime >= m_frameTime)
     {
-        m_currentFrameTime = sf::Time::Zero;
+        m_currentFrameTime -= m_frameTime;
         m_currentFrame = (m_currentFrame + 1) % m_frameCount;
 
         switch (m_animationState)
@@ -314,7 +346,42 @@ void Player::updateAnimation(sf::Time t_deltaTime)
             m_playerSprite.setTextureRect(m_fallingFrames[m_currentFrame]);
             break;
         case PlayerState::Attacking:
+            std::cout << "FRAME A1: " << m_currentFrame << std::endl;
+            if (m_currentFrame == 1)
+            {
+                m_attackCollisionActivated = true;
+                m_attackCollisionBox.setOutlineColor(sf::Color::Green);
+                if (m_unlockedEnergyWaveAttack)
+                {
+                    launchEnergyWave();
+                }
+                std::cout << "FIRST RECT" << std::endl;
+            }
+            else
+            {
+                m_attackCollisionActivated = false;
+                m_attackCollisionBox.setOutlineColor(sf::Color::Red);
+            }
             m_playerSprite.setTextureRect(m_attackFrames[m_currentFrame]);
+            break;
+        case PlayerState::Attacking2:
+            std::cout << "FRAME A2: " << m_currentFrame << std::endl;
+            if (m_currentFrame == 2)
+            {
+                m_attackCollisionActivated = true;
+                m_attackCollisionBox.setOutlineColor(sf::Color::Green);
+                if (m_unlockedEnergyWaveAttack)
+                {
+                    launchEnergyWave();
+                }
+                std::cout << "FIRST RECT" << std::endl;
+            }
+            else
+            {
+                m_attackCollisionActivated = false;
+                m_attackCollisionBox.setOutlineColor(sf::Color::Red);
+            }
+            m_playerSprite.setTextureRect(m_attack2Frames[m_currentFrame]);
             break;
         }
     }
@@ -345,6 +412,16 @@ void Player::loadTextures()
     if (!m_attackTexture.loadFromFile("Assets\\Images\\Player\\player_attack1.png"))
     {
         std::cout << "problem loading player attack image" << std::endl;
+    }
+
+    if (!m_attack2Texture.loadFromFile("Assets\\Images\\Player\\player_attack2.png"))
+    {
+        std::cout << "problem loading player attack2 image" << std::endl;
+    }
+
+    if (!m_energyWaveTexture.loadFromFile("Assets/Images/Player/shotwave.png"))
+    {
+        std::cout << "Error loading energy wave texture" << std::endl;
     }
 }
 
@@ -377,6 +454,11 @@ void Player::loadFrames()
     {
         m_attackFrames.push_back(sf::IntRect(i * frameWidth, 0, frameWidth, frameHeight));
     }
+
+    for (int i = 0; i < 6; ++i)
+    {
+        m_attack2Frames.push_back(sf::IntRect(i * frameWidth, 0, frameWidth, frameHeight));
+    }
 }
 
 void Player::updateBoundingBox()
@@ -384,6 +466,15 @@ void Player::updateBoundingBox()
     sf::Vector2f spritePos = m_playerSprite.getPosition();
     m_boundingBox.setPosition(spritePos.x - m_boundingBox.getSize().x / 2, spritePos.y + 5);
     m_groundBoundingBox.setPosition(spritePos.x - m_groundBoundingBox.getSize().x / 2, spritePos.y + m_boundingBox.getSize().y + 6);
+    if (m_facingDirection)
+    {
+        spritePos.x += 20;  // Adjust for right-facing
+    }
+    else
+    {
+        spritePos.x -= 120; // Adjust for left-facing
+    }
+    m_attackCollisionBox.setPosition(spritePos.x, spritePos.y + 5);
 }
 
 void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
@@ -430,7 +521,7 @@ void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_game
                 m_isJumping = false;
                 m_animationState = PlayerState::Falling;
                 m_playerSprite.setTexture(m_fallingTexture);
-                m_frameCount = 3;
+                m_frameCount = m_fallingFrames.size();
             }
         }
 
@@ -447,7 +538,6 @@ void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_game
             if (block.shape.getGlobalBounds().intersects(groundDetectionBounds))
             {
                 onGround = true;
-                m_canDoubleJump = true;
                 break;
             }
         }
@@ -478,6 +568,9 @@ void Player::updateAnimationFrame()
             break;
         case PlayerState::Attacking:
             m_playerSprite.setTextureRect(m_attackFrames[m_currentFrame]);
+            break;
+        case PlayerState::Attacking2:
+            m_playerSprite.setTextureRect(m_attack2Frames[m_currentFrame]);
             break;
         }
     }
@@ -556,27 +649,148 @@ void Player::shootBullet(const sf::Vector2f& m_target)
     }
 }
 
-void Player::updateBullets(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
 {
-    for (auto it = m_bullets.begin(); it != m_bullets.end();)
+    for (auto bulletIt = m_bullets.begin(); bulletIt != m_bullets.end();)
     {
-        Bullet& bullet = *it;
+        Bullet& bullet = *bulletIt;
         bullet.shape.move(bullet.direction * t_deltaTime.asSeconds());
 
-        // Check for collision with game blocks
         bool collision = false;
-        for (const auto& block : m_gameBlocks)
+        for (auto blockIt = m_gameBlocks.begin(); blockIt != m_gameBlocks.end();)
         {
+            Block& block = *blockIt;
+
             if (bullet.shape.getGlobalBounds().intersects(block.shape.getGlobalBounds()))
             {
                 collision = true;
-                break;
+                bool destroyed = block.takeDamage(10);
+
+                if (destroyed)
+                {
+                    blockIt = m_gameBlocks.erase(blockIt);
+                    std::cout << "Block destroyed" << std::endl;
+                }
+                else
+                {
+                    ++blockIt;
+                }
+                break; 
+            }
+            else
+            {
+                ++blockIt;
             }
         }
 
         if (collision)
         {
-            it = m_bullets.erase(it);
+            bulletIt = m_bullets.erase(bulletIt);
+        }
+        else
+        {
+            ++bulletIt;
+        }
+    }
+}
+
+void Player::startFirstAttack()
+{
+    m_isAttacking = true;
+    m_attackElapsed = sf::Time::Zero;
+    m_animationState = PlayerState::Attacking;
+    m_currentAttackState = AttackState::Attack1;
+    m_playerSprite.setTexture(m_attackTexture);
+    m_frameCount = m_attackFrames.size();
+    m_currentFrame = 0;
+    std::cout << "Start First Attack" << std::endl;
+}
+
+void Player::startSecondAttack()
+{
+    m_isAttacking = false;
+    m_isAttacking2 = true;
+    m_attackElapsed = sf::Time::Zero;
+    m_animationState = PlayerState::Attacking2;
+    m_currentAttackState = AttackState::Attack2;
+    m_playerSprite.setTexture(m_attack2Texture);
+    m_frameCount = m_attack2Frames.size();
+    m_currentFrame = 0;
+    std::cout << "Start Second Attack" << std::endl;
+}
+
+void Player::resetCombo()
+{
+    m_isAttacking = false;
+    m_isAttacking2 = false;
+    m_canComboAttack = false;
+    m_currentAttackState = AttackState::None;
+    m_animationState = PlayerState::Idle;
+    m_playerSprite.setTexture(m_idleTexture);
+    m_frameCount = m_idleFrames.size();
+    m_currentFrame = 0;
+    std::cout << "Combo Reset" << std::endl;
+}
+
+void Player::launchEnergyWave()
+{
+    if (m_attackCollisionActivated)
+    {
+        EnergyWave wave;
+        wave.sprite.setTexture(m_energyWaveTexture);
+        wave.sprite.setOrigin(m_energyWaveTexture.getSize().x / 2, m_energyWaveTexture.getSize().y / 2);
+        wave.sprite.setScale(2.5, 2.5);
+        wave.sprite.setPosition(m_playerSprite.getPosition() + sf::Vector2f(0, 30));
+
+        float speed = 300.0f;
+        if (m_facingDirection) 
+        {
+            wave.direction = sf::Vector2f(speed, 0.0f);
+        }
+        else
+        {
+            wave.direction = sf::Vector2f(-speed, 0.0f);
+            wave.sprite.setScale(-2.5f, 2.5f);
+        }
+
+        wave.lifetime = sf::seconds(2.0f);
+        wave.elapsedTime = sf::Time::Zero;
+
+        m_energyWaves.push_back(wave);
+
+        std::cout << "Energy Wave Launched!" << std::endl;
+    }
+}
+
+void Player::updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+{
+    for (auto it = m_energyWaves.begin(); it != m_energyWaves.end();)
+    {
+        it->sprite.move(it->direction * t_deltaTime.asSeconds());
+        it->elapsedTime += t_deltaTime;
+
+        bool shouldRemove = false;
+
+        if (it->elapsedTime >= it->lifetime)
+        {
+            shouldRemove = true;
+        }
+        else
+        {
+            sf::FloatRect waveBounds = it->sprite.getGlobalBounds();
+            for (const auto& block : m_gameBlocks)
+            {
+                if (block.shape.getGlobalBounds().intersects(waveBounds))
+                {
+                    shouldRemove = true;
+                    break;
+                }
+            }
+        }
+
+        if (shouldRemove)
+        {
+            it = m_energyWaves.erase(it);
         }
         else
         {
@@ -636,7 +850,7 @@ bool Player::isNearShop(const sf::Vector2f& m_shopPosition) const
 void Player::upgradeHealth()
 {
     m_maxHealth = static_cast<int>(m_maxHealth * 1.2); // Increase max health by 20%
-    m_health = m_maxHealth; // Fully heal the player on upgrade
+    m_health = m_maxHealth;
     m_secondaryHealthBarVisible = true;
     updateHealthBar();
 }
@@ -657,6 +871,11 @@ void Player::upgradeDoubleJump()
     m_doubleJumpUnlocked = true;
 }
 
+void Player::upgradeEnergyWaveAttack()
+{
+    m_unlockedEnergyWaveAttack = true;
+}
+
 int Player::getFrameCountForState(PlayerState m_state) const
 {
     switch (m_state)
@@ -671,6 +890,8 @@ int Player::getFrameCountForState(PlayerState m_state) const
         return m_fallingFrames.size();
     case PlayerState::Attacking:
         return m_attackFrames.size();
+    case PlayerState::Attacking2:
+        return m_attack2Frames.size();
     default:
         return 0;
     }

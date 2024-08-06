@@ -31,10 +31,25 @@ enum class BlockType
 struct Block
 {
     BlockType type = BlockType::NONE;
-    int health = 0;
+    sf::RectangleShape shape;
+    sf::Clock flashClock;
+    int health = 100;
+    int maxHealth = 100;
     int damage = 0;
     bool traversable = false;
-    sf::RectangleShape shape;
+    bool flashState = false;
+
+    bool takeDamage(int damageAmount) 
+    {
+        health -= damageAmount;
+        return health <= 0;
+    }
+
+    float getHealthPercentage() const 
+    {
+        return (static_cast<float>(health) / maxHealth) * 100.0f;
+    }
+
 };
 
 #endif

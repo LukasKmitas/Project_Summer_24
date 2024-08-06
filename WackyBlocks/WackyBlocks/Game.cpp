@@ -19,8 +19,8 @@ Game::Game() :
 	}
 	loadBackground();
 	initLevelAssets();
-	m_lightMapSprite.setTexture(m_lightMapTexture.getTexture());
 	initShop();
+	m_lightMapSprite.setTexture(m_lightMapTexture.getTexture());
 }
 
 Game::~Game()
@@ -86,21 +86,49 @@ void Game::processEvents()
 			{
 				if (m_shopOpen)
 				{
-					for (auto& item : m_shopItems)
+					if (m_isDraggingScrollBarHandle)
 					{
-						if (item.button.getGlobalBounds().contains(mousePos))
+						float newScrollHandleY = mousePos.y - m_scrollBarHandleOffsetY;
+						newScrollHandleY = std::max(m_scrollBar.getPosition().y, std::min(newScrollHandleY, m_scrollBar.getPosition().y + m_scrollBar.getSize().y - 20));
+						m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, newScrollHandleY);
+
+						float scrollRatio = (newScrollHandleY - m_scrollBar.getPosition().y) / (m_scrollBar.getSize().y - 20);
+						m_scrollOffset = scrollRatio * m_scrollMaxOffset;
+
+						for (int i = 0; i < m_shopItems.size(); ++i)
 						{
-							if (!item.purchased)
+							float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
+							m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
+							m_shopItems[i].text.setPosition(m_shopItems[i].button.getPosition().x + 10, m_shopItems[i].button.getPosition().y + 10);
+						}
+					}
+					else
+					{
+						bool itemHovered = false;
+						for (auto& item : m_shopItems)
+						{
+							if (item.button.getGlobalBounds().contains(mousePos) &&
+								item.button.getPosition().y > m_shopUIBackground.getPosition().y - m_shopUIBackground.getSize().y / 2 + 45 &&
+								item.button.getPosition().y < m_shopUIBackground.getPosition().y + m_shopUIBackground.getSize().y / 2 - 40)
 							{
-								item.button.setFillColor(sf::Color(150, 150, 150, 255));
+								itemHovered = true;
+								if (!item.purchased)
+								{
+									item.button.setFillColor(sf::Color(150, 150, 150, 255));
+								}
+								m_shopItemDescriptionText.setString(item.description);
+							}
+							else
+							{
+								if (!item.purchased)
+								{
+									item.button.setFillColor(sf::Color(100, 100, 100, 200));
+								}
 							}
 						}
-						else
+						if (!itemHovered)
 						{
-							if (!item.purchased)
-							{
-								item.button.setFillColor(sf::Color(100, 100, 100, 200));
-							}
+							m_shopItemDescriptionText.setString("");
 						}
 					}
 				}
@@ -188,8 +216,12 @@ void Game::processEvents()
 				}
 				else if (m_currentState == GameState::GAMEPLAY)
 				{
-					m_player.shootBullet(mousePos);
-					if (m_shopOpen)
+					if (m_shopOpen && m_scrollBarHandle.getGlobalBounds().contains(mousePos))
+					{
+						m_isDraggingScrollBarHandle = true;
+						m_scrollBarHandleOffsetY = mousePos.y - m_scrollBarHandle.getPosition().y;
+					}
+					else if (m_shopOpen && isMouseOverShop(mousePos))
 					{
 						for (auto& item : m_shopItems)
 						{
@@ -217,6 +249,10 @@ void Game::processEvents()
 									{
 										m_player.upgradeDoubleJump();
 									}
+									else if (item.text.getString().toAnsiString().find("Energy Wave Attack") != std::string::npos)
+									{
+										m_player.upgradeEnergyWaveAttack();
+									}
 									else if (item.text.getString().toAnsiString().find("Extra bullet x1") != std::string::npos)
 									{
 										m_player.upgradeBullets();
@@ -232,6 +268,10 @@ void Game::processEvents()
 								}
 							}
 						}
+					}
+					else
+					{
+						m_player.shootBullet(mousePos);
 					}
 				}
 			}
@@ -270,6 +310,10 @@ void Game::processEvents()
 						m_options.clearParticles();
 						m_currentState = GameState::MAIN_MENU;
 					}
+				}
+				else if (m_currentState == GameState::GAMEPLAY)
+				{
+					m_isDraggingScrollBarHandle = false;
 				}
 			}
 		}
@@ -324,7 +368,7 @@ void Game::update(sf::Time t_deltaTime)
 		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
 			m_player.update(t_deltaTime, m_gameBlocks);
-			if (m_shopOpen)
+			if (m_shopOpen && !m_isDraggingScrollBarHandle)
 			{
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 				{
@@ -335,7 +379,7 @@ void Game::update(sf::Time t_deltaTime)
 					m_scrollOffset = std::min(m_scrollMaxOffset, m_scrollOffset + 1.0f);
 				}
 
-				for (size_t i = 0; i < m_shopItems.size(); ++i)
+				for (int i = 0; i < m_shopItems.size(); ++i)
 				{
 					float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
 					m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
@@ -361,6 +405,7 @@ void Game::update(sf::Time t_deltaTime)
 			{
 				enemy->update(t_deltaTime);
 			}
+			updateBlocks();
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
@@ -400,21 +445,17 @@ void Game::render()
 		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
 			m_player.render(m_window);
-			for (auto& enemy : m_enemies)
-			{
-				enemy->render(m_window);
-			}
 		}
 		else if (m_currentMode == GameMode::MULTIPLAYER)
 		{
 			m_player.render(m_window);
 			m_otherPlayer.render(m_window);
-			for (auto& enemy : m_enemies)
-			{
-				enemy->render(m_window);
-			}
 		}
-		//m_window.draw(m_lightMapSprite, sf::BlendMultiply);
+		for (auto& enemy : m_enemies)
+		{
+			enemy->render(m_window);
+		}
+		m_window.draw(m_lightMapSprite, sf::BlendMultiply);
 		m_player.renderHealthUI(m_window);
 		m_window.draw(m_currencyText);
 		if (m_showShopText && !m_shopOpen)
@@ -424,7 +465,11 @@ void Game::render()
 		if (m_shopOpen)
 		{
 			m_window.draw(m_shopUIBackground);
+			m_window.draw(m_shopDescriptionBackground);
+			m_window.draw(m_lineBetween);
 			m_window.draw(m_shopTitleText);
+			m_window.draw(m_shopItemDescriptionTitleText);
+			m_window.draw(m_shopItemDescriptionText);
 			for (const auto& item : m_shopItems)
 			{
 				if (item.button.getPosition().y > m_shopUIBackground.getPosition().y - m_shopUIBackground.getSize().y / 2 + 45 &&
@@ -621,7 +666,16 @@ void Game::loadLevel(const std::string& m_fileName)
 	std::vector<sf::RectangleShape> shapes;
 	for (const auto& block : m_gameBlocks)
 	{
-		shapes.push_back(block.shape);
+		if (block.type == BlockType::DIRT || 
+			block.type == BlockType::GRANITE || 
+			block.type == BlockType::STONE ||
+			block.type == BlockType::SAND ||
+			block.type == BlockType::SHOP ||
+			block.type == BlockType::LAVA
+			)
+		{
+			shapes.push_back(block.shape);
+		}
 	}
 	m_edges = calculateEdges(shapes);
 }
@@ -630,27 +684,61 @@ void Game::createLightMap()
 {
 	m_lightMapTexture.clear(sf::Color::Black);
 
-	std::vector<sf::Vertex> lightPolygon;
+    std::unordered_set<const sf::RectangleShape*> shadowedBlocks;
 
-	// Add player light
-	m_lightSource = m_player.getPosition();
-	auto playerLight = calculateLightPolygon(m_lightSource, m_edges, m_lightRadius);
-	lightPolygon.insert(lightPolygon.end(), playerLight.begin(), playerLight.end());
+    // Add torch lights
+    for (const auto& block : m_gameBlocks)
+    {
+        if (block.type == BlockType::TORCH)
+        {
+            // Calculate light polygon for torch
+            auto torchLight = calculateLightPolygon(block.shape.getPosition(), m_torchLightRadius, torchLightIntensity, m_edges);
+            m_lightMapTexture.draw(&torchLight[0], torchLight.size(), sf::TrianglesFan, sf::BlendAdd);
 
-	// Add torch lights
-	for (const auto& block : m_gameBlocks)
-	{
-		if (block.type == BlockType::TORCH)
-		{
-			auto torchLight = calculateLightPolygon(block.shape.getPosition(), m_edges, m_lightRadius);
-			lightPolygon.insert(lightPolygon.end(), torchLight.begin(), torchLight.end());
-		}
-	}
+            // Calculate shadows for the torch
+            for (const auto& shadowBlock : m_gameBlocks)
+            {
+                if (shadowBlock.type == BlockType::DIRT ||
+                    shadowBlock.type == BlockType::GRANITE ||
+                    shadowBlock.type == BlockType::STONE ||
+                    shadowBlock.type == BlockType::SAND ||
+                    shadowBlock.type == BlockType::SHOP ||
+                    shadowBlock.type == BlockType::LAVA)
+                {
+                    auto shadowPolygon = calculateShadowPolygon(block.shape.getPosition(), shadowBlock.shape, m_shadowDistance, m_torchLightRadius, m_player.getPosition(), m_playerLightRadius);
+                    if (!shadowPolygon.empty())
+                    {
+                        shadowedBlocks.insert(&shadowBlock.shape);
+                        m_lightMapTexture.draw(&shadowPolygon[0], shadowPolygon.size(), sf::Quads, sf::BlendMultiply);
+                    }
+                }
+            }
+        }
+    }
 
-	if (!lightPolygon.empty())
-	{
-		m_lightMapTexture.draw(&lightPolygon[0], lightPolygon.size(), sf::TrianglesFan, sf::BlendAlpha);
-	}
+    // Add player light
+    m_lightSource = m_player.getPosition();
+    auto playerLight = calculateLightPolygon(m_lightSource, m_playerLightRadius, playerLightIntensity, m_edges);
+    m_lightMapTexture.draw(&playerLight[0], playerLight.size(), sf::TrianglesFan, sf::BlendAdd);
+
+    // Shadows from the players light source
+    for (const auto& block : m_gameBlocks)
+    {
+        if ((block.type == BlockType::DIRT ||
+            block.type == BlockType::GRANITE ||
+            block.type == BlockType::STONE ||
+            block.type == BlockType::SAND ||
+            block.type == BlockType::SHOP ||
+            block.type == BlockType::LAVA) &&
+            shadowedBlocks.find(&block.shape) == shadowedBlocks.end())
+        {
+            auto shadowPolygon = calculateShadowPolygon(m_lightSource, block.shape, m_shadowDistance, m_playerLightRadius, sf::Vector2f(-5000,-5000), m_playerLightRadius);
+            if (!shadowPolygon.empty())
+            {
+                m_lightMapTexture.draw(&shadowPolygon[0], shadowPolygon.size(), sf::Quads, sf::BlendMultiply);
+            }
+        }
+    }
 
 	m_lightMapTexture.display();
 }
@@ -701,7 +789,31 @@ void Game::initShop()
 	m_shopTitleText.setCharacterSize(24);
 	m_shopTitleText.setFillColor(sf::Color::White);
 	m_shopTitleText.setPosition(SCREEN_WIDTH / 2 - m_shopTitleText.getGlobalBounds().width / 2, SCREEN_HEIGHT / 2 - 130);
+	
+	m_lineBetween.setSize(sf::Vector2f(400, 5));
+	m_lineBetween.setFillColor(sf::Color(180, 180, 180, 255));
+	m_lineBetween.setPosition(m_shopUIBackground.getPosition().x, m_shopUIBackground.getPosition().y + 152);
+	m_lineBetween.setOrigin(m_lineBetween.getSize().x / 2, m_lineBetween.getSize().y / 2);
 
+	m_shopDescriptionBackground.setSize(sf::Vector2f(400, 100));
+	m_shopDescriptionBackground.setFillColor(sf::Color(0, 0, 0, 200));
+	m_shopDescriptionBackground.setOutlineColor(sf::Color::White);
+	m_shopDescriptionBackground.setOutlineThickness(2);
+	m_shopDescriptionBackground.setPosition(m_lineBetween.getPosition().x, m_lineBetween.getPosition().y + 50);
+	m_shopDescriptionBackground.setOrigin(m_shopDescriptionBackground.getSize().x / 2, m_shopDescriptionBackground.getSize().y / 2);
+
+	m_shopItemDescriptionTitleText.setFont(m_font);
+	m_shopItemDescriptionTitleText.setString("Item Description");
+	m_shopItemDescriptionTitleText.setCharacterSize(15);
+	m_shopItemDescriptionTitleText.setFillColor(sf::Color::White);
+	m_shopItemDescriptionTitleText.setPosition(m_lineBetween.getPosition().x, m_lineBetween.getPosition().y + 10);
+	m_shopItemDescriptionTitleText.setOrigin(m_shopItemDescriptionTitleText.getGlobalBounds().width / 2, m_shopItemDescriptionTitleText.getGlobalBounds().height / 2);
+
+	m_shopItemDescriptionText.setFont(m_font);
+	m_shopItemDescriptionText.setCharacterSize(15);
+	m_shopItemDescriptionText.setFillColor(sf::Color::White);
+	m_shopItemDescriptionText.setPosition(m_lineBetween.getPosition().x - 185, m_lineBetween.getPosition().y + 35);
+	
 	// shop items
 	std::vector<std::pair<std::string, int>> items =
 	{
@@ -714,7 +826,18 @@ void Game::initShop()
 		{"Small Shield", 130},
 	};
 
-	for (size_t i = 0; i < items.size(); ++i)
+	std::vector<std::string> descriptions = 
+	{
+		"Increases your health capacity",
+		"Increases your ammo capacity",
+		"Allows you to jump twice in the air",
+		"Releases a powerful energy wave\nfrom slash attacks",
+		"Gives a extra bullet when you fire",
+		"Gives a extra bullet when you fire",
+		"Grants a small shield for protection"
+	};
+
+	for (int i = 0; i < items.size(); ++i)
 	{
 		ShopItem shopItem;
 		shopItem.button.setSize(sf::Vector2f(300, 40));
@@ -728,6 +851,7 @@ void Game::initShop()
 		shopItem.text.setPosition(shopItem.button.getPosition().x + 10, shopItem.button.getPosition().y + 10);
 
 		shopItem.cost = items[i].second;
+		shopItem.description = descriptions[i];
 
 		m_shopItems.push_back(shopItem);
 	}
@@ -799,6 +923,42 @@ void Game::renderLevelAssets()
 	}
 	m_window.draw(m_portalSprite);
 	m_window.draw(m_shopSprite);
+}
+
+void Game::updateBlocks()
+{
+	for (auto& block : m_gameBlocks)
+	{
+		float healthPercentage = block.getHealthPercentage();
+
+		sf::Color flashColor = block.shape.getFillColor();
+		sf::Time flashInterval;
+
+		if (healthPercentage < 20.0f)
+		{
+			flashColor = sf::Color::Red;
+			flashInterval = sf::milliseconds(200);
+		}
+		else if (healthPercentage < 40.0f)
+		{
+			flashColor = sf::Color(255, 165, 0);
+			flashInterval = sf::milliseconds(500);
+		}
+		else
+		{
+			flashColor = sf::Color::White;
+			block.shape.setFillColor(flashColor);
+			continue;
+		}
+
+		// Handle flashing effect
+		if (block.flashClock.getElapsedTime() >= flashInterval)
+		{
+			block.flashState = !block.flashState;
+			block.shape.setFillColor(block.flashState ? flashColor : sf::Color::White);
+			block.flashClock.restart();
+		}
+	}
 }
 
 void Game::initNetwork()
@@ -929,6 +1089,27 @@ void Game::sendPlayerUpdate()
 
 	std::string playerInformation = "playerUpdate:" + std::to_string(position.x) + ":" + std::to_string(position.y) + ":" + std::to_string(currentFrame) + ":" + std::to_string(static_cast<int>(state));
 	m_socket->send(playerInformation.c_str(), playerInformation.size());
+}
+
+bool Game::isMouseOverShop(const sf::Vector2f& m_mousePos)
+{
+	for (const auto& item : m_shopItems)
+	{
+		if (item.button.getGlobalBounds().contains(m_mousePos))
+		{
+			return true;
+		}
+	}
+	if (m_shopUIBackground.getGlobalBounds().contains(m_mousePos) 
+		|| m_scrollBar.getGlobalBounds().contains(m_mousePos) 
+		|| m_scrollBarHandle.getGlobalBounds().contains(m_mousePos)
+		|| m_shopDescriptionBackground.getGlobalBounds().contains(m_mousePos)
+		|| m_lineBetween.getGlobalBounds().contains(m_mousePos)
+		)
+	{
+		return true;
+	}
+	return false;
 }
 
 std::vector<std::string> Game::split(const std::string& m_string, char m_delimiter)

@@ -20,6 +20,7 @@ struct ShopItem
 {
 	sf::RectangleShape button;
 	sf::Text text;
+	std::string description;
 	int cost = 0;
 	bool purchased = false;
 };
@@ -60,6 +61,7 @@ private:
 	void updateShopAnimation();
 	void updateShopTextAnimation();
 	void renderLevelAssets();
+	void updateBlocks();
 
 	// Server stuff
 	void initNetwork();
@@ -70,6 +72,8 @@ private:
 	void joinSession(const std::string& m_hostID);
 	void sendLevelToServer();
 	void sendPlayerUpdate();
+
+	bool isMouseOverShop(const sf::Vector2f& m_mousePos);
 
 	std::vector<std::string> split(const std::string& m_string, char m_delimiter);
 
@@ -82,15 +86,21 @@ private:
 	sf::Text m_shopText;
 	sf::Text m_currencyText;
 	sf::Text m_shopTitleText;
+	sf::Text m_shopItemDescriptionTitleText;
+	sf::Text m_shopItemDescriptionText;
 	std::vector<ShopItem> m_shopItems;
 	sf::RectangleShape m_shopUIBackground;
 	sf::RectangleShape m_scrollBar;
+	sf::RectangleShape m_lineBetween;
+	sf::RectangleShape m_shopDescriptionBackground;
 	sf::CircleShape m_scrollBarHandle;
 	int m_currency = 1000;
 	float m_scrollOffset = 0.0f;
 	float m_scrollMaxOffset = 0.0f;
+	float m_scrollBarHandleOffsetY = 0.0f;
 	bool m_shopOpen = false;
 	bool m_showShopText = false;
+	bool m_isDraggingScrollBarHandle = false;
 
 	// Animation stuff
 	// Portal
@@ -114,7 +124,11 @@ private:
 	sf::Sprite m_lightMapSprite;
 	std::vector<Edge> m_edges;
 	sf::Vector2f m_lightSource;
-	float m_lightRadius = 600.0f;
+	float playerLightIntensity = 1.0f;
+	float torchLightIntensity = 1.0f;
+	float m_playerLightRadius = 400.0f;
+	float m_torchLightRadius = 500.0f;
+	float m_shadowDistance = 400.0f;
 
 	// Multiplayer
 	std::unique_ptr<sf::TcpSocket> m_socket;
