@@ -43,7 +43,7 @@ private:
 
     void loadTextures();
     void setupUI();
-    void setupGrid();
+    void setupSliderGrid();
     void initTileBlocks();
     void setTileBlockPositions();
     void toggleSlider();
@@ -57,6 +57,7 @@ private:
     void rotateSelectedBlockLeft();
     void rotateSelectedBlockRight();
     void drawWorldGrid(sf::RenderWindow& m_window);
+    void setupGhostTile();
     void resetGhostTile();
 
     void setupSaveUI();
@@ -68,6 +69,8 @@ private:
     bool hasEssentialAssets(const std::vector<BlockType>& m_requiredAssets) const;
     bool hasPlayer() const;
     bool hasEndGate() const;
+
+    sf::Vector2f getBlockSize(BlockType type) const;
 
     TabType m_currentTab;
     BlockType getBlockTypeForCurrentTab(int m_index) const;
@@ -104,8 +107,10 @@ private:
 
     static const int GRID_ROWS = 8;
     static const int GRID_COLS = 4;
-    sf::RectangleShape m_grid[GRID_ROWS][GRID_COLS];
-    std::vector<sf::RectangleShape> m_tileBlocks;
+    sf::RectangleShape m_sliderGrid[GRID_ROWS][GRID_COLS];
+    std::vector<sf::RectangleShape> m_sliderTileBlocks;
+    sf::Vector2f m_sliderTileSize = sf::Vector2f(80, 80);
+    sf::RectangleShape m_sliderTile;
 
     // World blocks
     sf::Texture m_dirtTexture;

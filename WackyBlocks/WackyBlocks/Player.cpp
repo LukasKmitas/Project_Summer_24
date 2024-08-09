@@ -29,6 +29,7 @@ void Player::update(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     updateHealthBar();
     updateBullets(t_deltaTime, m_gameBlocks);
     updateEnergyWaves(t_deltaTime, m_gameBlocks);
+    updateAmmoPacks(m_gameBlocks);
 }
 
 void Player::render(sf::RenderWindow& m_window)
@@ -100,7 +101,7 @@ PlayerState Player::getState() const
     return m_animationState;
 }
 
-void Player::handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     bool moving = false;
     sf::Vector2f movement(0.f, 0.f);
@@ -491,7 +492,7 @@ void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_game
         bool collisionDetected = false;
         for (const auto& block : m_gameBlocks)
         {
-            if (block.shape.getGlobalBounds().intersects(newBounds))
+            if (!block.traversable && block.shape.getGlobalBounds().intersects(newBounds))
             {
                 collisionDetected = true;
                 if (m_verticalSpeed > 0) // Falling down
@@ -535,7 +536,7 @@ void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_game
         bool onGround = false;
         for (const auto& block : m_gameBlocks)
         {
-            if (block.shape.getGlobalBounds().intersects(groundDetectionBounds))
+            if (!block.traversable && block.shape.getGlobalBounds().intersects(groundDetectionBounds))
             {
                 onGround = true;
                 break;
@@ -649,6 +650,16 @@ void Player::shootBullet(const sf::Vector2f& m_target)
     }
 }
 
+void Player::refillAmmo(int m_ammoAmount)
+{
+    m_currentAmmo += m_ammoAmount;
+    if (m_currentAmmo > m_totalAmmo)
+    {
+        m_currentAmmo = m_totalAmmo;
+    }
+    updateAmmoText();
+}
+
 void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     for (auto bulletIt = m_bullets.begin(); bulletIt != m_bullets.end();)
@@ -661,7 +672,7 @@ void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlock
         {
             Block& block = *blockIt;
 
-            if (bullet.shape.getGlobalBounds().intersects(block.shape.getGlobalBounds()))
+            if (!block.traversable && bullet.shape.getGlobalBounds().intersects(block.shape.getGlobalBounds()))
             {
                 collision = true;
                 bool destroyed = block.takeDamage(10);
@@ -796,6 +807,30 @@ void Player::updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m
         {
             ++it;
         }
+    }
+}
+
+void Player::updateAmmoPacks(std::vector<Block>& m_gameBlocks)
+{
+    for (auto blockIt = m_gameBlocks.begin(); blockIt != m_gameBlocks.end();)
+    {
+        Block& block = *blockIt;
+
+        if (block.type == BlockType::AMMO_PACK)
+        {
+            if (getBoundingBox().intersects(block.shape.getGlobalBounds()))
+            {
+                if (m_currentAmmo < m_totalAmmo)
+                {
+                    refillAmmo(30);
+
+                    blockIt = m_gameBlocks.erase(blockIt);
+                    continue;
+                }
+            }
+        }
+     
+        ++blockIt;
     }
 }
 

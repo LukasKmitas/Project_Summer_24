@@ -18,6 +18,7 @@ private:
     void loadTextures();
     void loadFrames();
     void setupBoundingBox();
+    void setupDebug();
 
     void findPatrolPoints(const std::vector<Block>& m_blocks);
     void moveTowardsCurrentPoint(sf::Time m_deltaTime);
@@ -29,7 +30,8 @@ private:
     const std::vector<Block>& m_gameBlocks;
     std::vector<sf::Vector2f> m_patrolPoints;
     sf::RectangleShape m_collisionBox;
-    std::vector<sf::CircleShape> m_debugCircles;
+    std::vector<sf::CircleShape> m_patrolDebugCircles;
+    sf::CircleShape m_debugCircleForPatrol;
 
     sf::Time m_waitTime = sf::seconds(2.0f);
     sf::Time m_currentWaitTime = sf::Time::Zero;

@@ -12,6 +12,7 @@ MainMenu::MainMenu()
     setupMultiplayerMenu();
     setupHostGameScreen();
     setupJoinGameScreen();
+    setupBackButton();
     SoundManager::getInstance().loadAll();
     //SoundManager::getInstance().playMusic("MenuMusic", true);
 
@@ -48,6 +49,8 @@ void MainMenu::render(sf::RenderWindow& m_window)
             m_window.draw(m_submenuButton[i]);
             m_window.draw(m_submenuText[i]);
         }
+        m_window.draw(m_backButton);
+        m_window.draw(m_backButtonText);
     }
     else if (m_showLevelSelection)
     {
@@ -62,6 +65,8 @@ void MainMenu::render(sf::RenderWindow& m_window)
     }
     else if (m_showMultiplayerOptions)
     {
+        m_window.draw(m_backButton);
+        m_window.draw(m_backButtonText);
         m_window.draw(m_hostButton);
         m_window.draw(m_hostButtonText);
         m_window.draw(m_joinButton);
@@ -117,6 +122,15 @@ void MainMenu::handleMouseHover(sf::Vector2f m_mousePos)
     }
     else if (m_showSubmenu)
     {
+        if (m_backButton.getGlobalBounds().contains(m_mousePos))
+        {
+            m_backButton.setFillColor(sf::Color(100, 100, 100));
+        }
+        else
+        {
+            m_backButton.setFillColor(sf::Color::Transparent);
+        }
+
         for (int i = 0; i < 2; ++i)
         {
             if (m_submenuButton[i].getGlobalBounds().contains(m_mousePos))
@@ -154,6 +168,15 @@ void MainMenu::handleMouseHover(sf::Vector2f m_mousePos)
     }
     else if (m_showMultiplayerOptions)
     {
+        if (m_backButton.getGlobalBounds().contains(m_mousePos))
+        {
+            m_backButton.setFillColor(sf::Color(100, 100, 100));
+        }
+        else
+        {
+            m_backButton.setFillColor(sf::Color::Transparent);
+        }
+
         if (m_hostButton.getGlobalBounds().contains(m_mousePos))
         {
             m_hostButtonText.setFillColor(sf::Color::Red);
@@ -238,6 +261,12 @@ int MainMenu::handleClick(sf::Vector2f m_mousePos)
     }
     else if (m_showSubmenu)
     {
+        if (m_backButton.getGlobalBounds().contains(m_mousePos))
+        {
+            m_showSubmenu = false;
+            return -1; // Returning to main menu
+        }
+
         for (int i = 0; i < 2; ++i)
         {
             if (m_submenuButton[i].getGlobalBounds().contains(m_mousePos))
@@ -292,6 +321,13 @@ int MainMenu::handleClick(sf::Vector2f m_mousePos)
     }
     else if (m_showMultiplayerOptions)
     {
+        if (m_backButton.getGlobalBounds().contains(m_mousePos))
+        {
+            m_showMultiplayerOptions = false;
+            m_showSubmenu = true;
+            return -1; // Returning to main menu
+        }
+
         if (m_hostButton.getGlobalBounds().contains(m_mousePos))
         {
             m_showHostGameScreen = true;
@@ -517,7 +553,7 @@ void MainMenu::setupSubmenu()
     float buttonHeight = 50.0f;
     float outlineThickness = 2.0f;
     float xPosition = 50.0f;
-    float yPosition = 50.0f;
+    float yPosition = 150.0f;
     float xOffset = 0.0f;
     float yOffset = 80.0f;
 
@@ -701,5 +737,19 @@ void MainMenu::updateContinueButtonColor()
     {
         m_continueButton.setOutlineColor(sf::Color::Red);
     }
+}
+
+void MainMenu::setupBackButton()
+{
+    m_backButton.setSize(sf::Vector2f(100.0f, 50.0f));
+    m_backButton.setFillColor(sf::Color::Transparent);
+    m_backButton.setOutlineColor(sf::Color::White);
+    m_backButton.setOutlineThickness(2.0f);
+    m_backButton.setPosition(10.0f, 10.0f);
+
+    m_backButtonText.setFont(m_font);
+    m_backButtonText.setString("Back");
+    m_backButtonText.setFillColor(sf::Color::White);
+    m_backButtonText.setPosition(15.0f, 15.0f);
 }
 

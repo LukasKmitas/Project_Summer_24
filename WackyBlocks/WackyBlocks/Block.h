@@ -35,7 +35,7 @@ struct Block
     sf::Clock flashClock;
     int health = 100;
     int maxHealth = 100;
-    int damage = 0;
+    int damage = 100;
     bool traversable = false;
     bool flashState = false;
 

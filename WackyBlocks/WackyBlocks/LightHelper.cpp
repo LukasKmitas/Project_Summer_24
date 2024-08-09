@@ -14,19 +14,6 @@ std::vector<Edge> calculateEdges(const std::vector<sf::RectangleShape>& m_shapes
     return edges;
 }
 
-sf::Vector2f normalize(const sf::Vector2f& m_vec)
-{
-    float length = std::sqrt(m_vec.x * m_vec.x + m_vec.y * m_vec.y);
-    if (length != 0)
-    {
-        return sf::Vector2f(m_vec.x / length, m_vec.y / length);
-    }
-    else
-    {
-        return sf::Vector2f(0, 0);
-    }
-}
-
 std::vector<sf::Vertex> calculateLightPolygon(const sf::Vector2f& m_lightPos, float m_lightRadius, float m_intensity, const std::vector<Edge>& m_edges)
 {
     std::vector<sf::Vertex> vertices;
@@ -106,7 +93,7 @@ std::vector<sf::Vertex> calculateShadowPolygon(const sf::Vector2f& m_lightPos, c
         m_block.getTransform().transformPoint(0.0f, m_block.getSize().y)
     };
 
-    // Determine which corners are in shadow
+    // Find which corners are in shadow
     for (int i = 0; i < 4; ++i)
     {
         sf::Vector2f corner1 = blockCorners[i];
@@ -129,4 +116,17 @@ std::vector<sf::Vertex> calculateShadowPolygon(const sf::Vector2f& m_lightPos, c
     }
 
     return shadowVertices;
+}
+
+sf::Vector2f normalize(const sf::Vector2f& m_vec)
+{
+    float length = std::sqrt(m_vec.x * m_vec.x + m_vec.y * m_vec.y);
+    if (length != 0)
+    {
+        return sf::Vector2f(m_vec.x / length, m_vec.y / length);
+    }
+    else
+    {
+        return sf::Vector2f(0, 0);
+    }
 }

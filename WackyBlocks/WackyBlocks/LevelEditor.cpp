@@ -9,7 +9,8 @@ LevelEditor::LevelEditor()
     }
     loadTextures();
     setupUI();
-    setupGrid();
+    setupGhostTile();
+    setupSliderGrid();
     initTileBlocks();
     setupSaveUI();
 }
@@ -48,12 +49,12 @@ void LevelEditor::render(sf::RenderWindow& m_window)
     {
         for (int col = 0; col < GRID_COLS; ++col)
         {
-            m_window.draw(m_grid[row][col]);
+            m_window.draw(m_sliderGrid[row][col]);
         }
     }
 
     // tile blocks in grid
-    for (const auto& tile : m_tileBlocks)
+    for (const auto& tile : m_sliderTileBlocks)
     {
         m_window.draw(tile);
     }
@@ -286,9 +287,20 @@ void LevelEditor::handleMouseHover(sf::Vector2f m_mousePos)
 
     if (m_isBlockSelected)
     {
-        float gridSize = 80.0f;
+        const float gridSize = 80.0f;
+        sf::Vector2f blockSize = getBlockSize(m_selectedBlockType);
         float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + (gridSize / 2);
         float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + (gridSize / 2);
+
+        if (blockSize.x > gridSize) 
+        {
+            snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + ((static_cast<int>(blockSize.x / gridSize) * gridSize) / 2);
+        }
+        if (blockSize.y > gridSize)
+        {
+            snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + ((static_cast<int>(blockSize.y / gridSize) * gridSize) / 2);
+        }
+
         m_ghostTile.setPosition(snappedX, snappedY);
     }
 }
@@ -433,7 +445,8 @@ void LevelEditor::setupUI()
     m_tabNameText.setFont(m_font);
     m_tabNameText.setString("Blocks");
     m_tabNameText.setFillColor(sf::Color::White);
-    m_tabNameText.setPosition(m_sliderPosition + 150.0f, 100.0f);
+    m_tabNameText.setPosition(m_sliderPosition + 210.0f, 120.0f);
+    m_tabNameText.setOrigin(m_tabNameText.getGlobalBounds().width / 2, m_tabNameText.getGlobalBounds().height / 2);
 
     // Next tab button
     m_nextTabButton.setSize(sf::Vector2f(30.0f, 30.0f));
@@ -472,7 +485,7 @@ void LevelEditor::setupUI()
     m_deleteButtonText.setPosition(m_sliderPosition + 150.0f, 35.0f);
 }
 
-void LevelEditor::setupGrid()
+void LevelEditor::setupSliderGrid()
 {
     // Setup grid
     float startX = m_sliderPosition + 20.0f;
@@ -483,52 +496,40 @@ void LevelEditor::setupGrid()
     {
         for (int col = 0; col < GRID_COLS; ++col)
         {
-            m_grid[row][col].setSize(sf::Vector2f(cellWidth - 10.0f, cellHeight - 10.0f));
-            m_grid[row][col].setFillColor(sf::Color::Transparent);
-            m_grid[row][col].setOutlineColor(sf::Color::White);
-            m_grid[row][col].setOutlineThickness(1.0f);
-            m_grid[row][col].setPosition(startX + col * cellWidth, startY + row * cellHeight);
+            m_sliderGrid[row][col].setSize(sf::Vector2f(cellWidth - 10.0f, cellHeight - 10.0f));
+            m_sliderGrid[row][col].setFillColor(sf::Color::Transparent);
+            m_sliderGrid[row][col].setOutlineColor(sf::Color::White);
+            m_sliderGrid[row][col].setOutlineThickness(1.0f);
+            m_sliderGrid[row][col].setPosition(startX + col * cellWidth, startY + row * cellHeight);
         }
     }
 }
 
 void LevelEditor::initTileBlocks()
 {
-    sf::RectangleShape dirtTile;
-    dirtTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    dirtTile.setTexture(&m_dirtTexture);
-    m_tileBlocks.push_back(dirtTile);
+    m_sliderTile.setSize(m_sliderTileSize);
 
-    sf::RectangleShape graniteTile;
-    graniteTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    graniteTile.setTexture(&m_graniteTexture);
-    m_tileBlocks.push_back(graniteTile);
+    m_sliderTile.setTexture(&m_dirtTexture);
+    m_sliderTileBlocks.push_back(m_sliderTile);
 
-    sf::RectangleShape stoneTile;
-    stoneTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    stoneTile.setTexture(&m_stoneTexture);
-    m_tileBlocks.push_back(stoneTile);
+    m_sliderTile.setTexture(&m_graniteTexture);
+    m_sliderTileBlocks.push_back(m_sliderTile);
 
-    sf::RectangleShape sandTile;
-    sandTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    sandTile.setTexture(&m_sandTexture);
-    m_tileBlocks.push_back(sandTile);
+    m_sliderTile.setTexture(&m_stoneTexture);
+    m_sliderTileBlocks.push_back(m_sliderTile);
 
-    sf::RectangleShape waterTile;
-    waterTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    waterTile.setFillColor(sf::Color(0, 0, 255));
-    m_tileBlocks.push_back(waterTile);
+    m_sliderTile.setTexture(&m_sandTexture);
+    m_sliderTileBlocks.push_back(m_sliderTile);
 
-    sf::RectangleShape lavaTile;
-    lavaTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    lavaTile.setFillColor(sf::Color(255, 69, 0));
-    m_tileBlocks.push_back(lavaTile);
+    m_sliderTile.setFillColor(sf::Color(0, 0, 255));
+    m_sliderTile.setTexture(NULL);
+    m_sliderTileBlocks.push_back(m_sliderTile);
+
+    m_sliderTile.setFillColor(sf::Color(255, 70, 0));
+    m_sliderTile.setTexture(NULL);
+    m_sliderTileBlocks.push_back(m_sliderTile);
 
     setTileBlockPositions();
-
-    m_ghostTile.setSize(sf::Vector2f(80.0f, 80.0f));
-    m_ghostTile.setFillColor(sf::Color(255, 255, 255, 128));
-    m_ghostTile.setOrigin(40, 40);
 }
 
 void LevelEditor::setTileBlockPositions()
@@ -538,10 +539,10 @@ void LevelEditor::setTileBlockPositions()
     {
         for (int col = 0; col < GRID_COLS; ++col)
         {
-            if (tileIndex < m_tileBlocks.size())
+            if (tileIndex < m_sliderTileBlocks.size())
             {
-                sf::FloatRect gridBounds = m_grid[row][col].getGlobalBounds();
-                m_tileBlocks[tileIndex].setPosition
+                sf::FloatRect gridBounds = m_sliderGrid[row][col].getGlobalBounds();
+                m_sliderTileBlocks[tileIndex].setPosition
                 (
                     gridBounds.left + gridBounds.width / 2,
                     gridBounds.top + gridBounds.height / 2
@@ -551,7 +552,7 @@ void LevelEditor::setTileBlockPositions()
         }
     }
 
-    for (auto& block : m_tileBlocks)
+    for (auto& block : m_sliderTileBlocks)
     {
         sf::FloatRect bounds = block.getLocalBounds();
         block.setOrigin(bounds.width / 2, bounds.height / 2);
@@ -584,7 +585,7 @@ void LevelEditor::updateSliderPosition(sf::Time t_deltaTime)
     }
 
     m_sliderPanel.setPosition(m_sliderPosition, 0);
-    m_tabNameText.setPosition(m_sliderPosition + 150.0f, 100.0f);
+    m_tabNameText.setPosition(m_sliderPosition + 210.0f, 120.0f);
     m_nextTabButton.setPosition(m_sliderPosition + 350.0f, 155.0f);
     m_nextTabText.setPosition(m_sliderPosition + 355.0f, 150.0f);
     m_prevTabButton.setPosition(m_sliderPosition + 20.0f, 155.0f);
@@ -603,7 +604,7 @@ void LevelEditor::updateSliderPosition(sf::Time t_deltaTime)
     {
         for (int col = 0; col < GRID_COLS; ++col)
         {
-            m_grid[row][col].setPosition(startX + col * cellWidth, startY + row * cellHeight);
+            m_sliderGrid[row][col].setPosition(startX + col * cellWidth, startY + row * cellHeight);
         }
     }
 
@@ -614,10 +615,10 @@ void LevelEditor::updateSliderPosition(sf::Time t_deltaTime)
     {
         for (int col = 0; col < GRID_COLS; ++col) 
         {
-            if (tileIndex < m_tileBlocks.size())
+            if (tileIndex < m_sliderTileBlocks.size())
             {
-                sf::FloatRect gridBounds = m_grid[row][col].getGlobalBounds();
-                m_tileBlocks[tileIndex].setPosition
+                sf::FloatRect gridBounds = m_sliderGrid[row][col].getGlobalBounds();
+                m_sliderTileBlocks[tileIndex].setPosition
                 (
                     gridBounds.left + gridBounds.width / 2,
                     gridBounds.top + gridBounds.height / 2
@@ -630,7 +631,7 @@ void LevelEditor::updateSliderPosition(sf::Time t_deltaTime)
 
     if (m_isBlockSelected)
     {
-        m_ghostTile.setRotation(m_tileBlocks[m_selectedBlockIndex].getRotation());
+        m_ghostTile.setRotation(m_sliderTileBlocks[m_selectedBlockIndex].getRotation());
     }
 }
 
@@ -657,118 +658,59 @@ void LevelEditor::updateTabName()
         m_tabNameText.setString("Miscellaneous");
     }
     std::cout << "Current tab: " << m_tabNameText.getString().toAnsiString() << std::endl;
+    m_tabNameText.setOrigin(m_tabNameText.getGlobalBounds().width / 2, m_tabNameText.getGlobalBounds().height / 2);
 }
 
 void LevelEditor::updateTileBlocks()
 {
-    m_tileBlocks.clear();
+    m_sliderTileBlocks.clear();
     m_isBlockSelected = false;
     resetGhostTile();
 
+    auto addTileBlock = [&](const sf::Texture* texture, const sf::Color& color = sf::Color::White)
+        {
+            m_sliderTile.setTexture(texture);
+            m_sliderTile.setFillColor(color);
+            if (texture)
+            {
+                m_sliderTile.setTextureRect(sf::IntRect(0, 0, texture->getSize().x, texture->getSize().y));
+            }
+            m_sliderTileBlocks.push_back(m_sliderTile);
+        };
+
     if (m_currentTab == TabType::BLOCKS)
     {
-        sf::RectangleShape dirtTile;
-        dirtTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        dirtTile.setTexture(&m_dirtTexture);
-        m_tileBlocks.push_back(dirtTile);
-
-        sf::RectangleShape graniteTile;
-        graniteTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        graniteTile.setTexture(&m_graniteTexture);
-        m_tileBlocks.push_back(graniteTile);
-
-        sf::RectangleShape stoneTile;
-        stoneTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        stoneTile.setTexture(&m_stoneTexture);
-        m_tileBlocks.push_back(stoneTile);
-
-        sf::RectangleShape sandTile;
-        sandTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        sandTile.setTexture(&m_sandTexture);
-        m_tileBlocks.push_back(sandTile);
-
-        sf::RectangleShape waterTile;
-        waterTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        waterTile.setFillColor(sf::Color(0, 0, 255));
-        m_tileBlocks.push_back(waterTile);
-
-        sf::RectangleShape lavaTile;
-        lavaTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        lavaTile.setFillColor(sf::Color(255, 69, 0));
-        m_tileBlocks.push_back(lavaTile);
+        addTileBlock(&m_dirtTexture);
+        addTileBlock(&m_graniteTexture);
+        addTileBlock(&m_stoneTexture);
+        addTileBlock(&m_sandTexture);
+        addTileBlock(nullptr, sf::Color(0, 0, 255)); // Water
+        addTileBlock(nullptr, sf::Color(255, 69, 0)); // Lava
     }
     else if (m_currentTab == TabType::TRAPS)
     {
-        sf::RectangleShape spikeTile;
-        spikeTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        spikeTile.setTexture(&m_spikeTexture);
-        m_tileBlocks.push_back(spikeTile);
-
-        sf::RectangleShape barrelTile;
-        barrelTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        barrelTile.setTexture(&m_barrelTexture);
-        m_tileBlocks.push_back(barrelTile);
+        addTileBlock(&m_spikeTexture);
+        addTileBlock(&m_barrelTexture);
     }
     else if (m_currentTab == TabType::ENEMIES)
     {
-        sf::RectangleShape enemySkeletonTile;
-        enemySkeletonTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        enemySkeletonTile.setTexture(&m_skeletonTexture);
-        m_tileBlocks.push_back(enemySkeletonTile);
-
-        sf::RectangleShape enemyEvilEyeTile;
-        enemyEvilEyeTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        enemyEvilEyeTile.setTexture(&m_evilEyeTexture);
-        m_tileBlocks.push_back(enemyEvilEyeTile);
-
-        sf::RectangleShape enemyGoblinTile;
-        enemyGoblinTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        enemyGoblinTile.setTexture(&m_goblinTexture);
-        m_tileBlocks.push_back(enemyGoblinTile);
-
-        sf::RectangleShape mushroomTile;
-        mushroomTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        mushroomTile.setTexture(&m_mushroomTexture);
-        m_tileBlocks.push_back(mushroomTile);
-
-        sf::RectangleShape demonBossTile;
-        demonBossTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        demonBossTile.setTexture(&m_demonBossTexture);
-        m_tileBlocks.push_back(demonBossTile);
+        addTileBlock(&m_skeletonTexture);
+        addTileBlock(&m_evilEyeTexture);
+        addTileBlock(&m_goblinTexture);
+        addTileBlock(&m_mushroomTexture);
+        addTileBlock(&m_demonBossTexture);
     }
     else if (m_currentTab == TabType::ESSENTIALS)
     {
-        sf::RectangleShape playerTile;
-        playerTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        playerTile.setTexture(&m_playerTexture);
-        m_tileBlocks.push_back(playerTile);
-
-        sf::RectangleShape endGoal;
-        endGoal.setSize(sf::Vector2f(80.0f, 80.0f));
-        endGoal.setTexture(&m_endGateTexture);
-        m_tileBlocks.push_back(endGoal);
+        addTileBlock(&m_playerTexture);
+        addTileBlock(&m_endGateTexture);
     }
     else if (m_currentTab == TabType::MISCELLANEOUS)
     {
-        sf::RectangleShape healthPackTile;
-        healthPackTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        healthPackTile.setTexture(&m_healthPackTexture);
-        m_tileBlocks.push_back(healthPackTile);
-
-        sf::RectangleShape ammoPackTile;
-        ammoPackTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        ammoPackTile.setTexture(&m_ammoPackTexture);
-        m_tileBlocks.push_back(ammoPackTile);
-
-        sf::RectangleShape torchTile;
-        torchTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        torchTile.setTexture(&m_torchTexture);
-        m_tileBlocks.push_back(torchTile);
-
-        sf::RectangleShape shopTile;
-        shopTile.setSize(sf::Vector2f(80.0f, 80.0f));
-        shopTile.setTexture(&m_shopTexture);
-        m_tileBlocks.push_back(shopTile);
+        addTileBlock(&m_healthPackTexture);
+        addTileBlock(&m_ammoPackTexture);
+        addTileBlock(&m_torchTexture);
+        addTileBlock(&m_shopTexture);
     }
 
     setTileBlockPositions();
@@ -776,17 +718,17 @@ void LevelEditor::updateTileBlocks()
 
 void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
 {
-    for (int i = 0; i < m_tileBlocks.size(); ++i)
+    for (int i = 0; i < m_sliderTileBlocks.size(); ++i)
     {
-        if (m_tileBlocks[i].getGlobalBounds().contains(m_mousePos))
+        if (m_sliderTileBlocks[i].getGlobalBounds().contains(m_mousePos))
         {
             if (m_selectedBlockIndex == static_cast<int>(i))
             {
                 // Deselect the block
                 m_selectedBlockType = BlockType::NONE;
                 m_selectedBlockIndex = -1;
-                m_tileBlocks[i].setOutlineColor(sf::Color::Transparent);
-                m_tileBlocks[i].setOutlineThickness(0.0f);
+                m_sliderTileBlocks[i].setOutlineColor(sf::Color::Transparent);
+                m_sliderTileBlocks[i].setOutlineThickness(0.0f);
                 m_isBlockSelected = false;
                 resetGhostTile();
                 std::cout << "Deselected block: " << m_tabNameText.getString().toAnsiString() << " #" << (i + 1) << std::endl;
@@ -797,11 +739,14 @@ void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
                 // Select the block
                 m_selectedBlockType = getBlockTypeForCurrentTab(i);
                 m_selectedBlockIndex = i;
-                m_tileBlocks[i].setOutlineColor(sf::Color::Yellow);
-                m_tileBlocks[i].setOutlineThickness(3.0f);
+                m_sliderTileBlocks[i].setOutlineColor(sf::Color::Yellow);
+                m_sliderTileBlocks[i].setOutlineThickness(3.0f);
                 m_isBlockSelected = true;
                 
-                auto texture = m_tileBlocks[i].getTexture();
+                sf::Vector2f blockSize = getBlockSize(m_selectedBlockType);
+                m_ghostTile.setSize(blockSize);
+
+                auto texture = m_sliderTileBlocks[i].getTexture();
                 if (texture)
                 {
                     m_ghostTile.setTexture(texture, true); // Use true to reset the texture rect
@@ -810,6 +755,7 @@ void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
                 {
                     m_ghostTile.setTexture(nullptr);
                 }
+                m_ghostTile.setOrigin(blockSize.x / 2, blockSize.y / 2);
 
                 // Deselect the delete button
                 m_deleteMode = false;
@@ -822,8 +768,8 @@ void LevelEditor::selectBlock(sf::Vector2f m_mousePos)
         }
         else
         {
-            m_tileBlocks[i].setOutlineColor(sf::Color::Transparent);
-            m_tileBlocks[i].setOutlineThickness(0.0f);
+            m_sliderTileBlocks[i].setOutlineColor(sf::Color::Transparent);
+            m_sliderTileBlocks[i].setOutlineThickness(0.0f);
         }
     }
 }
@@ -833,26 +779,41 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
 {
     if (m_selectedBlockType != BlockType::NONE && !m_sliderPanel.getGlobalBounds().contains(m_mousePos))
     {
-        // Snap the block to the grid
-        float gridSize = 80.0f;
+        const float gridSize = 80.0f;
+        sf::Vector2f blockSize = getBlockSize(m_selectedBlockType);
+
+        // Calculate the snapped position for the block
         float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + (gridSize / 2);
         float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + (gridSize / 2);
 
+        if (blockSize.x > gridSize) 
+        {
+            snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + ((static_cast<int>(blockSize.x / gridSize) * gridSize) / 2);
+        }
+        if (blockSize.y > gridSize)
+        {
+            snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + ((static_cast<int>(blockSize.y / gridSize) * gridSize) / 2);
+        }
+
         // Check if a block already exists at this position and remove it
         auto it = std::remove_if(m_mapBlocks.begin(), m_mapBlocks.end(),
-            [snappedX, snappedY](const Block& block) 
+            [snappedX, snappedY, blockSize](const Block& block)
             {
-                return block.shape.getPosition().x == snappedX && block.shape.getPosition().y == snappedY;
+                sf::FloatRect newBlockBounds(snappedX - blockSize.x / 2, snappedY - blockSize.y / 2, blockSize.x, blockSize.y);
+                sf::FloatRect existingBlockBounds = block.shape.getGlobalBounds();
+                return newBlockBounds.intersects(existingBlockBounds);
             });
         m_mapBlocks.erase(it, m_mapBlocks.end());
 
         Block newBlock;
         newBlock.type = m_selectedBlockType;
-        newBlock.shape.setSize(sf::Vector2f(80, 80));
-        newBlock.shape.setTexture(m_tileBlocks[m_selectedBlockIndex].getTexture());
-        newBlock.shape.setRotation(m_tileBlocks[m_selectedBlockIndex].getRotation());
+        newBlock.shape.setSize(blockSize);
+        newBlock.shape.setTexture(m_sliderTileBlocks[m_selectedBlockIndex].getTexture());
+        newBlock.shape.setRotation(m_sliderTileBlocks[m_selectedBlockIndex].getRotation());
         newBlock.shape.setPosition(snappedX, snappedY);
-        newBlock.shape.setOrigin(40, 40);
+        newBlock.shape.setOrigin(blockSize.x / 2, blockSize.y / 2);
+        //newBlock.shape.setOutlineColor(sf::Color::Yellow);
+        //newBlock.shape.setOutlineThickness(1);
 
         switch (m_selectedBlockType)
         {
@@ -981,22 +942,16 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
 
 void LevelEditor::deleteBlock(sf::Vector2f m_mousePos)
 {
-    // Snap the block to the grid
-    float gridSize = 80.0f;
-    float snappedX = std::floor(m_mousePos.x / gridSize) * gridSize + (gridSize / 2);
-    float snappedY = std::floor(m_mousePos.y / gridSize) * gridSize + (gridSize / 2);
-
-    // Check if a block exists at this position and remove it
     auto it = std::remove_if(m_mapBlocks.begin(), m_mapBlocks.end(),
-        [snappedX, snappedY](const Block& block)
+        [m_mousePos](const Block& block)
         {
-            return block.shape.getPosition().x == snappedX && block.shape.getPosition().y == snappedY;
+            return block.shape.getGlobalBounds().contains(m_mousePos);
         });
 
     if (it != m_mapBlocks.end())
     {
         m_mapBlocks.erase(it, m_mapBlocks.end());
-        std::cout << "Deleted block at: (" << snappedX << ", " << snappedY << ")" << std::endl;
+        std::cout << "Deleted block at: (" << m_mousePos.x << ", " << m_mousePos.y << ")" << std::endl;
     }
 }
 
@@ -1010,8 +965,8 @@ void LevelEditor::toggleDeleteMode()
         // Deselect the block in the slider
         if (m_selectedBlockIndex != -1) 
         {
-            m_tileBlocks[m_selectedBlockIndex].setOutlineColor(sf::Color::Transparent);
-            m_tileBlocks[m_selectedBlockIndex].setOutlineThickness(0.0f);
+            m_sliderTileBlocks[m_selectedBlockIndex].setOutlineColor(sf::Color::Transparent);
+            m_sliderTileBlocks[m_selectedBlockIndex].setOutlineThickness(0.0f);
             m_selectedBlockType = BlockType::NONE;
             m_selectedBlockIndex = -1;
             m_isBlockSelected = false;
@@ -1031,7 +986,7 @@ void LevelEditor::rotateSelectedBlockLeft()
 {
     if (m_selectedBlockIndex != -1) 
     {
-        m_tileBlocks[m_selectedBlockIndex].rotate(-90);
+        m_sliderTileBlocks[m_selectedBlockIndex].rotate(-90);
     }
 }
 
@@ -1039,7 +994,7 @@ void LevelEditor::rotateSelectedBlockRight()
 {
     if (m_selectedBlockIndex != -1) 
     {
-        m_tileBlocks[m_selectedBlockIndex].rotate(90);
+        m_sliderTileBlocks[m_selectedBlockIndex].rotate(90);
     }
 }
 
@@ -1065,6 +1020,13 @@ void LevelEditor::drawWorldGrid(sf::RenderWindow& m_window)
         };
         m_window.draw(line, 2, sf::Lines);
     }
+}
+
+void LevelEditor::setupGhostTile()
+{
+    m_ghostTile.setSize(sf::Vector2f(80.0f, 80.0f));
+    m_ghostTile.setFillColor(sf::Color(255, 255, 255, 128));
+    m_ghostTile.setOrigin(40, 40);
 }
 
 void LevelEditor::resetGhostTile()
@@ -1203,33 +1165,33 @@ void LevelEditor::saveToFile(const std::string& m_fileName)
     }
 
     std::ostringstream jsonStream;
-    jsonStream << "{\n";
-    jsonStream << "  \"blocks\":\n";
-    jsonStream << "  [\n";
+    jsonStream << "Blocks:";
+    jsonStream << "\n   [";
 
     for (int i = 0; i < m_mapBlocks.size(); ++i)
     {
         const auto& block = m_mapBlocks[i];
-        jsonStream << "    {\n";
-        jsonStream << "      \"type\": " << static_cast<int>(block.type) << ",\n";
-        jsonStream << "      \"health\": " << block.health << ",\n";
-        jsonStream << "      \"damage\": " << block.damage << ",\n";
-        jsonStream << "      \"traversable\": " << (block.traversable ? "true" : "false") << ",\n";
-        jsonStream << "      \"position\":\n";
-        jsonStream << "      {\n";
-        jsonStream << "        \"x\": " << block.shape.getPosition().x << ",\n";
-        jsonStream << "        \"y\": " << block.shape.getPosition().y << "\n";
-        jsonStream << "      }\n";
-        jsonStream << "    }";
+        jsonStream << "\n    {";
+        jsonStream << "\n      \"type\": " << static_cast<int>(block.type) << ",";
+        jsonStream << "\n      \"health\": " << block.health << ",";
+        jsonStream << "\n      \"damage\": " << block.damage << ",";
+        jsonStream << "\n      \"traversable\": " << (block.traversable ? "true" : "false") << ",";
+        jsonStream << "\n      \"width\": " << block.shape.getSize().x << ",";
+        jsonStream << "\n      \"height\": " << block.shape.getSize().y << ",";
+        jsonStream << "\n      \"position\":";
+        jsonStream << "\n      {";
+        jsonStream << "\n        \"x\": " << block.shape.getPosition().x << ",";
+        jsonStream << "\n        \"y\": " << block.shape.getPosition().y;
+        jsonStream << "\n      }";
+        jsonStream << "\n    }";
         if (i < m_mapBlocks.size() - 1)
         {
             jsonStream << ",";
         }
-        jsonStream << "\n";
     }
 
-    jsonStream << "  ]\n";
-    jsonStream << "}";
+    jsonStream << "\n   ]";
+    jsonStream << "\nEnd of save file";
 
     outFile << jsonStream.str();
     outFile.close();
@@ -1322,6 +1284,57 @@ bool LevelEditor::hasEndGate() const
         }
     }
     return false;
+}
+
+sf::Vector2f LevelEditor::getBlockSize(BlockType type) const
+{
+    sf::Vector2f small = sf::Vector2f(80, 80); // 1x1 block
+    sf::Vector2f medium = sf::Vector2f(160, 160); // 2x2 block
+    sf::Vector2f large = sf::Vector2f(240, 240); // 3x3 block
+
+    switch (type)
+    {
+    case BlockType::DIRT:
+        return small;
+    case BlockType::GRANITE:
+        return small;
+    case BlockType::STONE:
+        return small;
+    case BlockType::SAND:
+        return small;
+    case BlockType::WATER:
+        return small;
+    case BlockType::LAVA:
+        return small;
+    case BlockType::TRAP_SPIKE:
+        return small;
+    case BlockType::TRAP_BARREL:
+        return small;
+    case BlockType::SKELETON:
+        return small;
+    case BlockType::EVIL_EYE:
+        return small;
+    case BlockType::GOBLIN:
+        return small;
+    case BlockType::MUSHROOM:
+        return small;
+    case BlockType::ENEMY_DEMON_BOSS:
+        return medium;
+    case BlockType::PLAYER:
+        return small;
+    case BlockType::END_GATE:
+        return small;
+    case BlockType::TORCH:
+        return small;
+    case BlockType::SHOP:
+        return large;
+    case BlockType::HEALTH_PACK:
+        return small;
+    case BlockType::AMMO_PACK:
+        return small;
+    default:
+        break;
+    }
 }
 
 BlockType LevelEditor::getBlockTypeForCurrentTab(int m_index) const

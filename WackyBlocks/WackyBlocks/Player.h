@@ -80,7 +80,7 @@ private:
     std::vector<Bullet> m_bullets;
     std::vector<EnergyWave> m_energyWaves;
 
-    void handleInput(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks);
     void setupPlayer();
     void setupHealth();
     void setupAmmo();
@@ -98,6 +98,8 @@ private:
     void resetCombo();
     void launchEnergyWave();
     void updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void refillAmmo(int m_ammoAmount);
+    void updateAmmoPacks(std::vector<Block>& m_gameBlocks);
 
     sf::Sprite m_playerSprite;
     sf::RectangleShape m_boundingBox;

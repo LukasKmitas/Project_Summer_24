@@ -15,6 +15,16 @@ struct SessionInfo
     sf::RectangleShape m_button;
 };
 
+enum class ScreenState 
+{
+    MAIN_MENU,
+    SUBMENU,
+    LEVEL_SELECTION,
+    MULTIPLAYER_OPTIONS,
+    HOST_GAME_SCREEN,
+    JOIN_GAME_SCREEN
+};
+
 class MainMenu
 {
 public:
@@ -37,6 +47,7 @@ public:
     void updateSessionList(const std::string& m_sessions);
     void setClientID(const std::string& m_id);
     void setPlayerJoined(bool m_joined);
+    void loadLevelFiles();
 
     int getPressedItem() { return m_selectedItemIndex; }
     int handleClick(sf::Vector2f m_mousePos);
@@ -48,6 +59,7 @@ public:
 private:
 
     ParticleManager m_particleManager;
+    ScreenState m_currentScreenState = ScreenState::MAIN_MENU;
 
     void setupMenu();
     void setupSubmenu();
@@ -55,8 +67,8 @@ private:
     void setupMultiplayerMenu();
     void setupHostGameScreen();
     void setupJoinGameScreen();
-    void loadLevelFiles();
     void updateContinueButtonColor();
+    void setupBackButton();
 
     int m_selectedItemIndex = 0;
     int m_selectedLevelIndex = -1;
@@ -71,6 +83,9 @@ private:
     sf::RectangleShape m_continueButton;
     sf::Text m_continueButtonText;
     sf::Text m_submenuText[2];
+
+    sf::RectangleShape m_backButton;
+    sf::Text m_backButtonText;
 
     sf::Texture m_backgroundTexture;
     sf::Sprite m_backgroundSprite;

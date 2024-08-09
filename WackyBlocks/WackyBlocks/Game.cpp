@@ -297,6 +297,7 @@ void Game::processEvents()
 					if (m_levelEditor.isBackButtonPressed())
 					{
 						m_levelEditor.reset();
+						m_mainMenu.loadLevelFiles();
 						m_currentState = GameState::MAIN_MENU;
 					}
 				}
@@ -455,7 +456,7 @@ void Game::render()
 		{
 			enemy->render(m_window);
 		}
-		m_window.draw(m_lightMapSprite, sf::BlendMultiply);
+		//m_window.draw(m_lightMapSprite, sf::BlendMultiply);
 		m_player.renderHealthUI(m_window);
 		m_window.draw(m_currencyText);
 		if (m_showShopText && !m_shopOpen)
@@ -537,7 +538,11 @@ void Game::loadLevel(const std::string& m_fileName)
 
 	auto readBool = [](const std::string& value) -> bool 
 		{
-			return value == "true";
+			std::string trimmedValue = value;
+			trimmedValue.erase(remove_if(trimmedValue.begin(), trimmedValue.end(), isspace), trimmedValue.end());
+			std::transform(trimmedValue.begin(), trimmedValue.end(), trimmedValue.begin(), ::tolower);
+
+			return (trimmedValue == "true" || trimmedValue == "1");
 		};
 
 	auto readBlockType = [](const std::string& value) -> BlockType 
@@ -551,10 +556,12 @@ void Game::loadLevel(const std::string& m_fileName)
 		std::cout << "No blocks found in the save file." << std::endl;
 		return;
 	}
-	start += std::string("[").length();
+
+	start += 1;
 	auto end = fileContent.find("]", start);
 	std::string blocksContent = fileContent.substr(start, end - start);
 	std::string::size_type blockStart = 0, blockEnd = 0;
+	std::vector<sf::Vector2f> enemyPositions;
 
 	while ((blockStart = blocksContent.find("{", blockEnd)) != std::string::npos)
 	{
@@ -565,10 +572,12 @@ void Game::loadLevel(const std::string& m_fileName)
 		block.type = readBlockType(readValue("\"type\"", blockContent));
 		block.health = readInt(readValue("\"health\"", blockContent));
 		block.damage = readInt(readValue("\"damage\"", blockContent));
-		block.traversable = readBool(readValue("\"traversable\"", blockContent));
 		block.shape.setPosition(readFloat(readValue("\"x\"", blockContent)), readFloat(readValue("\"y\"", blockContent)));
-		block.shape.setSize(sf::Vector2f(80, 80));
-		block.shape.setOrigin(40, 40);
+		block.shape.setSize(sf::Vector2f(readFloat(readValue("\"width\"", blockContent)), readFloat(readValue("\"height\"", blockContent))));
+		block.shape.setOrigin(block.shape.getSize().x / 2, block.shape.getSize().y / 2);
+
+		std::string traversableValue = readValue("\"traversable\"", blockContent);
+		block.traversable = readBool(traversableValue);
 
 		if (block.type == BlockType::PLAYER)
 		{
@@ -576,7 +585,7 @@ void Game::loadLevel(const std::string& m_fileName)
 		}
 		else if (block.type == BlockType::EVIL_EYE)
 		{
-			m_enemies.push_back(std::make_unique<EvilEye>(block.shape.getPosition(), m_gameBlocks));
+			enemyPositions.push_back(block.shape.getPosition());
 		}
 		else if (block.type == BlockType::END_GATE)
 		{
@@ -663,6 +672,12 @@ void Game::loadLevel(const std::string& m_fileName)
 			}
 		}	
 	}
+
+	for (const auto& pos : enemyPositions)
+	{
+		m_enemies.push_back(std::make_unique<EvilEye>(pos, m_gameBlocks));
+	}
+
 	std::vector<sf::RectangleShape> shapes;
 	for (const auto& block : m_gameBlocks)
 	{

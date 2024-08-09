@@ -12,6 +12,7 @@ EvilEye::EvilEye(const sf::Vector2f& m_position, const std::vector<Block>& m_blo
     }
     m_sprite.setOrigin(m_sprite.getGlobalBounds().width / 2.0f, m_sprite.getGlobalBounds().height / 2.0f);
     setupBoundingBox();
+    setupDebug();
     setState(EnemyState::IDLE);
     findPatrolPoints(m_blocks);
     m_health = 60;
@@ -35,23 +36,8 @@ void EvilEye::render(sf::RenderWindow& m_window)
     m_window.draw(m_collisionBox);
 
     // Draw patrol points and lines
-    for (size_t i = 0; i < m_patrolPoints.size(); ++i)
+    for (int i = 0; i < m_patrolPoints.size(); ++i)
     {
-        sf::CircleShape patrolPointShape(5.0f);
-        patrolPointShape.setPosition(m_patrolPoints[i]);
-        patrolPointShape.setOrigin(5.0f, 5.0f);
-
-        if (i == m_currentPatrolIndex)
-        {
-            patrolPointShape.setFillColor(sf::Color::Red);
-        }
-        else
-        {
-            patrolPointShape.setFillColor(sf::Color::Green);
-        }
-
-        m_window.draw(patrolPointShape);
-
         // Draw lines between patrol points
         if (i > 0)
         {
@@ -77,9 +63,17 @@ void EvilEye::render(sf::RenderWindow& m_window)
         m_window.draw(line, 2, sf::Lines);
     }
 
-    for (auto& circle : m_debugCircles)
+    for (int i = 0; i < m_patrolDebugCircles.size(); ++i)
     {
-        m_window.draw(circle);
+        if (i == m_currentPatrolIndex)
+        {
+            m_patrolDebugCircles[i].setFillColor(sf::Color::Red);
+        }
+        else
+        {
+            m_patrolDebugCircles[i].setFillColor(sf::Color::Yellow);
+        }
+        m_window.draw(m_patrolDebugCircles[i]);
     }
 }
 
@@ -135,8 +129,7 @@ void EvilEye::loadFrames()
 
 void EvilEye::setupBoundingBox()
 {
-    sf::FloatRect bounds = m_sprite.getGlobalBounds();
-    m_collisionBox.setSize(sf::Vector2f(bounds.width * 0.6f, bounds.height * 0.6f));
+    m_collisionBox.setSize(sf::Vector2f(40, 40));
     m_collisionBox.setOrigin(m_collisionBox.getSize() / 2.0f);
     m_collisionBox.setPosition(m_sprite.getPosition());
     m_collisionBox.setFillColor(sf::Color::Transparent);
@@ -144,12 +137,24 @@ void EvilEye::setupBoundingBox()
     m_collisionBox.setOutlineThickness(1.0f);
 }
 
+void EvilEye::setupDebug()
+{
+    m_debugCircleForPatrol.setRadius(5);
+    m_debugCircleForPatrol.setOrigin(5.0f, 5.0f);
+    m_debugCircleForPatrol.setFillColor(sf::Color::Yellow);
+}
+
 void EvilEye::findPatrolPoints(const std::vector<Block>& m_blocks)
 {
+
+    std::cout << "Total blocks: " << m_blocks.size() << std::endl;
+
     const float patrolRadius = 300.0f; 
     const int numPoints = 2;
     sf::Vector2f startPosition = m_sprite.getPosition();
 
+    m_debugCircleForPatrol.setPosition(startPosition);
+    m_patrolDebugCircles.push_back(m_debugCircleForPatrol);
     m_patrolPoints.push_back(startPosition);
 
     for (int i = 0; i < numPoints; ++i)
@@ -167,12 +172,8 @@ void EvilEye::findPatrolPoints(const std::vector<Block>& m_blocks)
                 valid = true;
                 m_patrolPoints.push_back(point);
 
-                // Add debug circle
-                sf::CircleShape debugCircle(5.0f);
-                debugCircle.setPosition(point);
-                debugCircle.setOrigin(5.0f, 5.0f);
-                debugCircle.setFillColor(sf::Color::Yellow);
-                m_debugCircles.push_back(debugCircle);
+                m_debugCircleForPatrol.setPosition(point);
+                m_patrolDebugCircles.push_back(m_debugCircleForPatrol);
             }
         }
     }
@@ -196,8 +197,24 @@ void EvilEye::moveTowardsCurrentPoint(sf::Time m_deltaTime)
     }
 
     sf::Vector2f velocity = direction * m_speed * m_deltaTime.asSeconds();
-    m_sprite.move(velocity);
-    m_collisionBox.setPosition(m_sprite.getPosition());
+    sf::Vector2f newPosition = currentPosition + velocity;
+
+    // Check for collision with non-traversable blocks
+    bool collisionDetected = false;
+    for (const auto& block : m_gameBlocks)
+    {
+        if (!block.traversable && block.shape.getGlobalBounds().intersects(m_collisionBox.getGlobalBounds()))
+        {
+            collisionDetected = true;
+            break;
+        }
+    }
+
+    if (!collisionDetected)
+    {
+        m_sprite.setPosition(newPosition);
+        m_collisionBox.setPosition(newPosition);
+    }
 
     if (std::abs(currentPosition.x - targetPosition.x) < 1.0f && std::abs(currentPosition.y - targetPosition.y) < 1.0f)
     {
@@ -223,13 +240,30 @@ bool EvilEye::isValidPatrolPoint(const sf::Vector2f& m_point, const std::vector<
 {
     const float bufferDistance = 40.0f;
     sf::FloatRect bufferBounds(m_point.x - bufferDistance, m_point.y - bufferDistance, 2 * bufferDistance, 2 * bufferDistance);
+
     for (const auto& block : m_blocks)
     {
-        if (block.shape.getGlobalBounds().intersects(bufferBounds) && !block.traversable)
+        if (!block.traversable && block.shape.getGlobalBounds().intersects(bufferBounds))
         {
             return false;
         }
     }
+
+    for (float dx = -bufferDistance; dx <= bufferDistance; dx += bufferDistance)
+    {
+        for (float dy = -bufferDistance; dy <= bufferDistance; dy += bufferDistance)
+        {
+            sf::Vector2f checkPoint(m_point.x + dx, m_point.y + dy);
+            for (const auto& block : m_blocks)
+            {
+                if (!block.traversable && block.shape.getGlobalBounds().contains(checkPoint))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
     return true;
 }
 
