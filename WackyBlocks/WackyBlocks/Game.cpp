@@ -369,6 +369,7 @@ void Game::update(sf::Time t_deltaTime)
 		if (m_currentMode == GameMode::SINGLE_PLAYER)
 		{
 			m_player.update(t_deltaTime, m_gameBlocks);
+			updateBulletCollisionsForEnemy();
 			if (m_shopOpen && !m_isDraggingScrollBarHandle)
 			{
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
@@ -404,7 +405,7 @@ void Game::update(sf::Time t_deltaTime)
 
 			for (auto& enemy : m_enemies)
 			{
-				enemy->update(t_deltaTime);
+				enemy->update(t_deltaTime, m_player);
 			}
 			updateBlocks();
 		}
@@ -414,7 +415,7 @@ void Game::update(sf::Time t_deltaTime)
 			sendPlayerUpdate();
 			for (auto& enemy : m_enemies)
 			{
-				enemy->update(t_deltaTime);
+				enemy->update(t_deltaTime, m_player);
 			}
 		}
 		updatePortalAnimation();
@@ -972,6 +973,34 @@ void Game::updateBlocks()
 			block.flashState = !block.flashState;
 			block.shape.setFillColor(block.flashState ? flashColor : sf::Color::White);
 			block.flashClock.restart();
+		}
+	}
+}
+
+void Game::updateBulletCollisionsForEnemy()
+{
+	for (auto bulletIt = m_player.getBullets().begin(); bulletIt != m_player.getBullets().end();)
+	{
+		Bullet& bullet = *bulletIt;
+		bool collision = false;
+
+		for (auto& enemy : m_enemies)
+		{
+			if (!enemy->isDead() && bullet.shape.getGlobalBounds().intersects(enemy->getBoundingBox()))
+			{
+				collision = true;
+				enemy->takeDamage(6);
+				break;
+			}
+		}
+
+		if (collision)
+		{
+			bulletIt = m_player.getBullets().erase(bulletIt);
+		}
+		else
+		{
+			++bulletIt;
 		}
 	}
 }

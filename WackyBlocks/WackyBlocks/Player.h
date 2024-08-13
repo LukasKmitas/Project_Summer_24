@@ -67,11 +67,13 @@ public:
     int getCurrentFrame() const;
     int getFrameCountForState(PlayerState m_state) const;
     int getHealth() const;
+    bool isPlayerAlive() const;
     PlayerState getState() const;
 
     sf::FloatRect getBoundingBox() const;
     sf::FloatRect getGroundDetectionBox() const;
     sf::Vector2f getPosition() const;
+    std::vector<Bullet>& getBullets();
 
 private:
 
@@ -99,7 +101,8 @@ private:
     void launchEnergyWave();
     void updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
     void refillAmmo(int m_ammoAmount);
-    void updateAmmoPacks(std::vector<Block>& m_gameBlocks);
+    void updateOnAmmoPacks(std::vector<Block>& m_gameBlocks);
+    void updateOnHealthPacks(std::vector<Block>& m_gameBlocks);
 
     sf::Sprite m_playerSprite;
     sf::RectangleShape m_boundingBox;
@@ -139,6 +142,8 @@ private:
     sf::Time m_comboTimeWindow = sf::seconds(0.4f);
     sf::Time m_comboElapsedTime = sf::Time::Zero;
 
+    sf::Vector2f m_velocity = sf::Vector2f(0.0f, 0.0f);
+
     int m_currentFrame = 0;
     int m_frameCount = 0;
   
@@ -167,7 +172,7 @@ private:
     bool m_firstJumpOn = false;
     bool m_canComboAttack = false;
     bool m_unlockedEnergyWaveAttack = false;
-
+    bool m_isPlayerDead = false;
 };
 
 #endif

@@ -29,7 +29,8 @@ void Player::update(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     updateHealthBar();
     updateBullets(t_deltaTime, m_gameBlocks);
     updateEnergyWaves(t_deltaTime, m_gameBlocks);
-    updateAmmoPacks(m_gameBlocks);
+    updateOnAmmoPacks(m_gameBlocks);
+    updateOnHealthPacks(m_gameBlocks);
 }
 
 void Player::render(sf::RenderWindow& m_window)
@@ -238,6 +239,11 @@ sf::FloatRect Player::getGroundDetectionBox() const
 sf::Vector2f Player::getPosition() const
 {
     return m_playerSprite.getPosition();
+}
+
+std::vector<Bullet>& Player::getBullets()
+{
+    return m_bullets;
 }
 
 void Player::setupPlayer()
@@ -633,11 +639,11 @@ void Player::shootBullet(const sf::Vector2f& m_target)
         {
             Bullet extraBullet = mainBullet;
             sf::Vector2f extraDirection = direction;
-            if (i % 2 == 1) // Odd bullets go above
+            if (i % 2 == 1)
             {
                 extraDirection.y -= offset * length;
             }
-            else // Even bullets go below
+            else
             {
                 extraDirection.y += offset * length;
             }
@@ -810,7 +816,7 @@ void Player::updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m
     }
 }
 
-void Player::updateAmmoPacks(std::vector<Block>& m_gameBlocks)
+void Player::updateOnAmmoPacks(std::vector<Block>& m_gameBlocks)
 {
     for (auto blockIt = m_gameBlocks.begin(); blockIt != m_gameBlocks.end();)
     {
@@ -830,6 +836,30 @@ void Player::updateAmmoPacks(std::vector<Block>& m_gameBlocks)
             }
         }
      
+        ++blockIt;
+    }
+}
+
+void Player::updateOnHealthPacks(std::vector<Block>& m_gameBlocks)
+{
+    for (auto blockIt = m_gameBlocks.begin(); blockIt != m_gameBlocks.end();)
+    {
+        Block& block = *blockIt;
+
+        if (block.type == BlockType::HEALTH_PACK)
+        {
+            if (getBoundingBox().intersects(block.shape.getGlobalBounds()))
+            {
+                if (m_health < m_maxHealth)
+                {
+                    heal(60);
+
+                    blockIt = m_gameBlocks.erase(blockIt);
+                    continue;
+                }
+            }
+        }
+
         ++blockIt;
     }
 }
@@ -861,6 +891,7 @@ void Player::takeDamage(int m_amount)
     if (m_health < 0)
     {
         m_health = 0;
+        m_isPlayerDead = true;
     }
     updateHealthBar();
 }
@@ -935,4 +966,9 @@ int Player::getFrameCountForState(PlayerState m_state) const
 int Player::getHealth() const
 {
     return m_health;
+}
+
+bool Player::isPlayerAlive() const
+{
+    return m_isPlayerDead;
 }

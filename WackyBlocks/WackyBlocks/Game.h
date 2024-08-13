@@ -62,6 +62,7 @@ private:
 	void updateShopTextAnimation();
 	void renderLevelAssets();
 	void updateBlocks();
+	void updateBulletCollisionsForEnemy();
 
 	// Server stuff
 	void initNetwork();
