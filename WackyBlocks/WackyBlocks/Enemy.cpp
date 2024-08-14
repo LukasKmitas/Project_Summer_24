@@ -12,9 +12,10 @@ Enemy::~Enemy()
 {
 }
 
-void Enemy::update(sf::Time m_deltaTime, const Player& m_player)
+void Enemy::update(sf::Time m_deltaTime, Player& m_player)
 {
     updateVisionCone();
+    updateHealthBar();
     if (isPlayerInVisionCone(m_player))
     {
         m_playerPos = m_player.getPosition();
@@ -60,10 +61,13 @@ void Enemy::takeDamage(int m_damage)
     }
     else
     {
-        if (m_animationState != EnemyState::TAKE_HIT)
+        if (m_animationState != EnemyState::ATTACK1 && m_animationState != EnemyState::ATTACK2 && m_animationState != EnemyState::ATTACK3)
         {
-            m_previousState = m_animationState;
-            setState(EnemyState::TAKE_HIT);
+            if (m_animationState != EnemyState::TAKE_HIT)
+            {
+                m_previousState = m_animationState;
+                setState(EnemyState::TAKE_HIT);
+            }
         }
     }
 }
@@ -101,6 +105,10 @@ void Enemy::updateAnimation(sf::Time m_deltaTime)
             m_currentFrame = (m_currentFrame + 1) % m_attack2Frames.size();
             m_sprite.setTexture(m_attack2Texture);
             m_sprite.setTextureRect(m_attack2Frames[m_currentFrame]);
+            if (m_currentFrame == m_attack2Frames.size() - 1)
+            {
+                setState(m_previousState);
+            }
             break;
         case EnemyState::ATTACK3:
             m_currentFrame = (m_currentFrame + 1) % m_attack3Frames.size();

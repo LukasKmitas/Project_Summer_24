@@ -129,8 +129,47 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
         }
     }
 
-    // First jump
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && !m_isJumping && !m_isFalling)
+    if (m_isKnockedBack)
+    {
+        float progress = m_knockbackElapsedTime.asSeconds() / m_knockbackDuration.asSeconds();
+        sf::Vector2f knockbackThisFrame = m_knockbackForce * (1.0f - progress) * t_deltaTime.asSeconds();
+
+        sf::Vector2f newPosition = m_playerSprite.getPosition() + knockbackThisFrame;
+
+        for (const auto& block : m_gameBlocks)
+        {
+            if (!block.traversable && block.shape.getGlobalBounds().intersects(getBoundingBox()))
+            {
+                if (knockbackThisFrame.x > 0)
+                {
+                    newPosition.x = block.shape.getPosition().x - m_playerSprite.getGlobalBounds().width;
+                }
+                else if (knockbackThisFrame.x < 0)
+                {
+                    newPosition.x = block.shape.getPosition().x + block.shape.getGlobalBounds().width;
+                }
+                if (knockbackThisFrame.y > 0)
+                {
+                    newPosition.y = block.shape.getPosition().y - m_playerSprite.getGlobalBounds().height;
+                }
+                else if (knockbackThisFrame.y < 0)
+                {
+                    newPosition.y = block.shape.getPosition().y + block.shape.getGlobalBounds().height;
+                }
+                break;
+            }
+        }
+
+        m_playerSprite.setPosition(newPosition);
+
+        m_knockbackElapsedTime += t_deltaTime;
+        if (m_knockbackElapsedTime >= m_knockbackDuration)
+        {
+            m_isKnockedBack = false;
+            m_knockbackForce = sf::Vector2f(0.0f, 0.0f);
+        }
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && !m_isJumping && !m_isFalling) // First jump
     {
         m_animationState = PlayerState::Jumping;
         m_playerSprite.setTexture(m_jumpTexture);
@@ -141,6 +180,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
         m_firstJumpOn = true;
         m_canDoubleJump = false;
         m_jumpElapsedTime = sf::Time::Zero;
+        SoundManager::getInstance().playSound("jump");
         std::cout << "First JUMP" << std::endl;
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && m_doubleJumpUnlocked && m_canDoubleJump) // Double jump (upgradable item)
@@ -155,6 +195,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
             m_isFalling = false;
             m_canDoubleJump = false;
             m_firstJumpOn = false;
+            SoundManager::getInstance().playSound("jump");
             std::cout << "Second JUMP" << std::endl;
         }
     }
@@ -656,6 +697,14 @@ void Player::shootBullet(const sf::Vector2f& m_target)
     }
 }
 
+void Player::applyKnockback(const sf::Vector2f& m_force, sf::Time m_duration)
+{
+    m_knockbackForce = m_force;
+    m_knockbackDuration = m_duration;
+    m_knockbackElapsedTime = sf::Time::Zero;
+    m_isKnockedBack = true;
+}
+
 void Player::refillAmmo(int m_ammoAmount)
 {
     m_currentAmmo += m_ammoAmount;
@@ -797,7 +846,7 @@ void Player::updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m
             sf::FloatRect waveBounds = it->sprite.getGlobalBounds();
             for (const auto& block : m_gameBlocks)
             {
-                if (block.shape.getGlobalBounds().intersects(waveBounds))
+                if (!block.traversable && block.shape.getGlobalBounds().intersects(waveBounds))
                 {
                     shouldRemove = true;
                     break;
@@ -829,7 +878,7 @@ void Player::updateOnAmmoPacks(std::vector<Block>& m_gameBlocks)
                 if (m_currentAmmo < m_totalAmmo)
                 {
                     refillAmmo(30);
-
+                    SoundManager::getInstance().playSound("pickup");
                     blockIt = m_gameBlocks.erase(blockIt);
                     continue;
                 }
@@ -853,7 +902,7 @@ void Player::updateOnHealthPacks(std::vector<Block>& m_gameBlocks)
                 if (m_health < m_maxHealth)
                 {
                     heal(60);
-
+                    SoundManager::getInstance().playSound("pickup");
                     blockIt = m_gameBlocks.erase(blockIt);
                     continue;
                 }

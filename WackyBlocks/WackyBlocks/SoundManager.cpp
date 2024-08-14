@@ -210,4 +210,6 @@ void SoundManager::loadAll()
     
     // Sounds
     loadSound("buttonClick", "Assets\\Audio\\click07.mp3");
+    loadSound("pickup", "Assets\\Audio\\pickup.wav");
+    loadSound("jump", "Assets\\Audio\\jump.wav");
 }

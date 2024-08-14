@@ -27,7 +27,7 @@ public:
 	Enemy(const sf::Vector2f& m_position, std::vector<Block>& m_blocks);
 	virtual ~Enemy();
 
-	virtual void update(sf::Time m_deltaTime, const Player& m_player);
+	virtual void update(sf::Time m_deltaTime, Player& m_player);
 	virtual void render(sf::RenderWindow& m_window);
 
 	virtual void takeDamage(int m_damage);

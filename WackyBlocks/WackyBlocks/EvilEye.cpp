@@ -21,14 +21,65 @@ EvilEye::EvilEye(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
     m_visionAngle = 90.0f;
 }
 
-void EvilEye::update(sf::Time m_deltaTime, const Player& m_player)
+void EvilEye::update(sf::Time m_deltaTime, Player& m_player)
 {
     if (!m_isDead)
     {
         Enemy::update(m_deltaTime, m_player);
 
+        if (!m_canBiteAttack)
+        {
+            m_timeSinceLastBiteAttack += m_deltaTime;
+            if (m_timeSinceLastBiteAttack >= m_biteAttackCooldown)
+            {
+                m_canBiteAttack = true;
+            }
+        }
+
+        if (m_canBiteAttack && m_animationState != EnemyState::ATTACK1 && m_animationState != EnemyState::ATTACK2 && m_animationState != EnemyState::ATTACK3)
+        {
+            float distanceToPlayer = std::sqrt(std::pow(m_player.getPosition().x - m_sprite.getPosition().x, 2) +
+                std::pow(m_player.getPosition().y - m_sprite.getPosition().y, 2));
+
+            if (distanceToPlayer <= 100.0f && isPlayerInVisionCone(m_player))
+            {
+                m_previousState = m_animationState;
+                if (m_animationState != EnemyState::ATTACK1)
+                {
+                    m_previousState = m_animationState;
+                    setState(EnemyState::ATTACK1);
+                    m_timeSinceLastBiteAttack = sf::Time::Zero;
+                    m_canBiteAttack = false;
+                }
+            }
+        }
+
+        if (!m_canSpinAttack)
+        {
+            m_timeSinceLastSpinAttack += m_deltaTime;
+            if (m_timeSinceLastSpinAttack >= m_spinAttackCooldown)
+            {
+                m_canSpinAttack = true;
+                m_timeSinceLastSpinAttack = sf::Time::Zero;
+            }
+        }
+
+        if (m_canSpinAttack && m_animationState != EnemyState::ATTACK3 && m_animationState != EnemyState::ATTACK2 && m_animationState != EnemyState::ATTACK1)
+        {
+            if (m_collisionBox.getGlobalBounds().intersects(m_player.getBoundingBox()))
+            {
+                m_previousState = m_animationState;
+                if (m_animationState != EnemyState::ATTACK2)
+                {
+                    m_previousState = m_animationState;
+                    setState(EnemyState::ATTACK2);
+                    m_canSpinAttack = false;
+                }
+            }
+        }
+
         m_timeSinceLastShot += m_deltaTime;
-        if (m_timeSinceLastShot >= m_shootTimer && isPlayerInVisionCone(m_player))
+        if (m_timeSinceLastShot >= m_shootTimer && isPlayerInVisionCone(m_player) && m_animationState != EnemyState::ATTACK1)
         {
             m_timeSinceLastShot = sf::Time::Zero;
             m_previousState = m_animationState;
@@ -63,7 +114,6 @@ void EvilEye::update(sf::Time m_deltaTime, const Player& m_player)
                 moveToNextPatrolPoint(m_deltaTime);
             }
         }
-        updateHealthBar();
     }
     m_collisionBox.setPosition(m_sprite.getPosition());
     updateEvilEyeAnimation(m_deltaTime, m_player);
@@ -202,7 +252,6 @@ void EvilEye::loadFrames()
     {
         m_takeHitFrames.push_back(sf::IntRect(i * frameWidth, 0, frameWidth, frameHeight));
     }
-
 }
 
 void EvilEye::setupBoundingBox()
@@ -359,7 +408,7 @@ void EvilEye::delayIfReachedPoint(sf::Time m_deltaTime)
     }
 }
 
-void EvilEye::updateEvilEyeAnimation(sf::Time m_deltaTime, const Player& m_player)
+void EvilEye::updateEvilEyeAnimation(sf::Time m_deltaTime, Player& m_player)
 {
     m_currentFrameTime += m_deltaTime;
 
@@ -397,6 +446,75 @@ void EvilEye::updateEvilEyeAnimation(sf::Time m_deltaTime, const Player& m_playe
             }
             m_sprite.setTexture(m_deathTexture);
             m_sprite.setTextureRect(m_deathFrames[m_currentFrame]);
+        }
+    }
+    else if (m_animationState == EnemyState::ATTACK1)
+    {
+        if (m_currentFrameTime >= m_frameTime)
+        {
+            m_currentFrameTime = sf::Time::Zero;
+            m_currentFrame = (m_currentFrame + 1) % m_attack1Frames.size();
+            m_sprite.setTexture(m_attack1Texture);
+            m_sprite.setTextureRect(m_attack1Frames[m_currentFrame]);
+
+            if (m_currentFrame == 5)
+            {
+                m_originalPosition = m_sprite.getPosition();
+                sf::Vector2f leapDirection = m_player.getPosition() - m_sprite.getPosition();
+                float length = std::sqrt(leapDirection.x * leapDirection.x + leapDirection.y * leapDirection.y);
+                if (length != 0)
+                {
+                    leapDirection /= length;
+                }
+                sf::Vector2f leapDistance = leapDirection * 120.0f;
+                m_sprite.move(leapDistance);
+            }
+
+            if (m_currentFrame == 6)
+            {
+                if (m_collisionBox.getGlobalBounds().intersects(m_player.getBoundingBox()))
+                {
+                    m_player.takeDamage(15);
+                }
+                m_sprite.setPosition(m_originalPosition);
+            }
+
+            if (m_currentFrame == m_attack1Frames.size() - 1)
+            {
+                setState(m_previousState);
+            }
+        }
+    }
+    else if (m_animationState == EnemyState::ATTACK2)
+    {
+        if (m_currentFrameTime >= m_frameTime)
+        {
+            m_currentFrameTime = sf::Time::Zero;
+            m_currentFrame = (m_currentFrame + 1) % m_attack2Frames.size();
+            m_sprite.setTexture(m_attack2Texture);
+            m_sprite.setTextureRect(m_attack2Frames[m_currentFrame]);
+
+            if (m_currentFrame == 5)
+            {
+                if (m_collisionBox.getGlobalBounds().intersects(m_player.getBoundingBox()))
+                {
+                    sf::Vector2f knockbackDirection = m_player.getPosition() - m_sprite.getPosition();
+                    float length = std::sqrt(knockbackDirection.x * knockbackDirection.x + knockbackDirection.y * knockbackDirection.y);
+                    if (length != 0)
+                    {
+                        knockbackDirection /= length;
+                    }
+                    sf::Vector2f knockbackForce = knockbackDirection * m_knockbackStrength;
+
+                    m_player.takeDamage(5);
+                    m_player.applyKnockback(knockbackForce, sf::seconds(0.5f));
+                }
+            }
+
+            if (m_currentFrame == m_attack2Frames.size() - 1)
+            {
+                setState(m_previousState);
+            }
         }
     }
     else if (m_animationState == EnemyState::ATTACK3)

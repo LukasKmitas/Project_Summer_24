@@ -147,6 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CorruptedMushroom.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="EnemyProjectile.cpp" />
     <ClCompile Include="EvilEye.cpp" />
@@ -162,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Block.h" />
+    <ClInclude Include="CorruptedMushroom.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EnemyProjectile.h" />
     <ClInclude Include="EvilEye.h" />

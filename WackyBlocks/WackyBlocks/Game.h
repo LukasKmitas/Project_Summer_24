@@ -15,6 +15,7 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "EvilEye.h"
+#include "CorruptedMushroom.h"
 
 struct ShopItem
 {
@@ -82,6 +83,9 @@ private:
 	sf::Font m_font;
 	sf::Texture m_backgroundTexture;
 	sf::Sprite m_backgroundSprite;
+
+	std::vector<sf::Vector2f> m_evilEyePositions;
+	std::vector<sf::Vector2f> m_mushroomPositions;
 
 	// Shop stuff
 	sf::Text m_shopText;

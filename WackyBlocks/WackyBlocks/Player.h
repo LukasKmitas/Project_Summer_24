@@ -5,6 +5,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include "Block.h"
+#include "SoundManager.h"
 
 enum class PlayerState
 {
@@ -56,6 +57,7 @@ public:
     void takeDamage(int m_amount);
     void heal(int m_amount);
     void shootBullet(const sf::Vector2f& m_target);
+    void applyKnockback(const sf::Vector2f& m_force, sf::Time m_duration);
 
     bool isNearShop(const sf::Vector2f& m_shopPosition) const;
     void upgradeHealth();
@@ -141,8 +143,10 @@ private:
     sf::Time m_comboDelay = sf::seconds(0.1f);
     sf::Time m_comboTimeWindow = sf::seconds(0.4f);
     sf::Time m_comboElapsedTime = sf::Time::Zero;
+    sf::Time m_knockbackDuration;
+    sf::Time m_knockbackElapsedTime = sf::Time::Zero;
 
-    sf::Vector2f m_velocity = sf::Vector2f(0.0f, 0.0f);
+    sf::Vector2f m_knockbackForce;
 
     int m_currentFrame = 0;
     int m_frameCount = 0;
@@ -173,6 +177,8 @@ private:
     bool m_canComboAttack = false;
     bool m_unlockedEnergyWaveAttack = false;
     bool m_isPlayerDead = false;
+    bool m_isKnockedBack = false;
+
 };
 
 #endif

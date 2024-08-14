@@ -66,6 +66,9 @@
     <ClCompile Include="EnemyProjectile.cpp">
       <Filter>Source Files\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="CorruptedMushroom.cpp">
+      <Filter>Source Files\Enemy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h">
@@ -111,6 +114,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="EnemyProjectile.h">
+      <Filter>Header Files\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="CorruptedMushroom.h">
       <Filter>Header Files\Enemy</Filter>
     </ClInclude>
   </ItemGroup>

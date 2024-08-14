@@ -562,7 +562,6 @@ void Game::loadLevel(const std::string& m_fileName)
 	auto end = fileContent.find("]", start);
 	std::string blocksContent = fileContent.substr(start, end - start);
 	std::string::size_type blockStart = 0, blockEnd = 0;
-	std::vector<sf::Vector2f> enemyPositions;
 
 	while ((blockStart = blocksContent.find("{", blockEnd)) != std::string::npos)
 	{
@@ -586,7 +585,11 @@ void Game::loadLevel(const std::string& m_fileName)
 		}
 		else if (block.type == BlockType::EVIL_EYE)
 		{
-			enemyPositions.push_back(block.shape.getPosition());
+			m_evilEyePositions.push_back(block.shape.getPosition());
+		}
+		else if (block.type == BlockType::MUSHROOM)
+		{
+			m_mushroomPositions.push_back(block.shape.getPosition());
 		}
 		else if (block.type == BlockType::END_GATE)
 		{
@@ -674,9 +677,14 @@ void Game::loadLevel(const std::string& m_fileName)
 		}	
 	}
 
-	for (const auto& pos : enemyPositions)
+	for (const auto& pos : m_evilEyePositions)
 	{
 		m_enemies.push_back(std::make_unique<EvilEye>(pos, m_gameBlocks));
+	}
+
+	for (const auto& pos : m_mushroomPositions)
+	{
+		m_enemies.push_back(std::make_unique<CorruptedMushroom>(pos, m_gameBlocks));
 	}
 
 	std::vector<sf::RectangleShape> shapes;
