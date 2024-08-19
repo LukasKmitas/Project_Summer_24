@@ -1,10 +1,10 @@
-#include "CorruptedMushroom.h"
+#include "Goblin.h"
 
-CorruptedMushroom::CorruptedMushroom(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
-	: Enemy(m_position, m_blocks)
+Goblin::Goblin(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
+	: Enemy(m_position, m_blocks) 
 {
-	loadTextures();
-	loadFrames();
+    loadTextures();
+    loadFrames();
     m_sprite.setTexture(m_idleTexture);
     if (!m_idleFrames.empty())
     {
@@ -14,18 +14,18 @@ CorruptedMushroom::CorruptedMushroom(const sf::Vector2f& m_position, std::vector
     setupBoundingBox();
     setState(EnemyState::PATROL);
     m_health = 100;
-    m_speed = 13;
-    m_visionRange = 80.0f;
-    m_visionAngle = 110.0f;
+    m_speed = 40;
+    m_visionRange = 300.0f;
+    m_visionAngle = 100.0f;
     m_spriteOffSet = sf::Vector2f(0, 65);
     m_gravityBoxOffSet = sf::Vector2f(0, 24);
 }
 
-CorruptedMushroom::~CorruptedMushroom()
+Goblin::~Goblin()
 {
 }
 
-void CorruptedMushroom::update(sf::Time m_deltaTime, Player& m_player)
+void Goblin::update(sf::Time m_deltaTime, Player& m_player)
 {
     if (!m_isDead)
     {
@@ -45,7 +45,9 @@ void CorruptedMushroom::update(sf::Time m_deltaTime, Player& m_player)
             }
         }
 
-        if (m_animationState == EnemyState::ATTACK1 || m_animationState == EnemyState::ATTACK2 || m_animationState == EnemyState::ATTACK3)
+        if (m_animationState == EnemyState::ATTACK1 ||
+            m_animationState == EnemyState::ATTACK2 ||
+            m_animationState == EnemyState::ATTACK3)
         {
             m_velocity.x = 0;
         }
@@ -56,54 +58,56 @@ void CorruptedMushroom::update(sf::Time m_deltaTime, Player& m_player)
         }
 
         m_timeSinceLastAttack += m_deltaTime;
-        m_timeSinceLastGasAttack += m_deltaTime;
+        m_timeSinceLastRangeAttack += m_deltaTime;
+        m_attackRange = m_collisionBox.getGlobalBounds();
+        m_attackRange.left += (m_movingDirection ? 40.0f : -40.0f);
+        m_attackDebugRect.setSize(sf::Vector2f(m_attackRange.width, m_attackRange.height));
+        m_attackDebugRect.setPosition(m_attackRange.left, m_attackRange.top);
 
-        if (m_timeSinceLastAttack >= m_attackCooldown && isPlayerInVisionCone(m_player) && !m_isAttacking)
+        if (m_timeSinceLastAttack >= m_attackCooldown && m_attackDebugRect.getGlobalBounds().intersects(m_player.getBoundingBox()) && !m_isAttacking)
         {
-            if (static_cast<float>(m_health) / m_maxHealth < 0.4f && m_timeSinceLastGasAttack >= m_gasAttackCooldown)
+            int randomAttack = std::rand() % 2;
+
+            if (randomAttack == 0)
             {
-                setState(EnemyState::ATTACK3);
-                m_isAttacking = true;
-                m_timeSinceLastAttack = sf::Time::Zero;
-                m_timeSinceLastGasAttack = sf::Time::Zero;  // Reset gas attack cooldown
+                setState(EnemyState::ATTACK1);
             }
             else
             {
-                int randomAttack = std::rand() % 2;
-
-                if (randomAttack == 0)
-                {
-                    setState(EnemyState::ATTACK1);
-                }
-                else
-                {
-                    setState(EnemyState::ATTACK2);
-                }
-
-                m_isAttacking = true;
-                m_timeSinceLastAttack = sf::Time::Zero;
+                setState(EnemyState::ATTACK2);
             }
+
+            m_isAttacking = true;
+            m_timeSinceLastAttack = sf::Time::Zero;
         }
-        m_attackRange = m_collisionBox.getGlobalBounds();
-        m_attackRange.left += (m_movingDirection ? 30.0f : -30.0f);
-        m_attackDebugRect.setSize(sf::Vector2f(m_attackRange.width, m_attackRange.height));
-        m_attackDebugRect.setPosition(m_attackRange.left, m_attackRange.top);
+        else if (m_timeSinceLastRangeAttack >= m_rangeAttackCooldown && isPlayerInVisionCone(m_player) && !m_isAttacking)
+        {
+            setState(EnemyState::ATTACK3);
+            m_isAttacking = true;
+            m_timeSinceLastAttack = sf::Time::Zero;
+            m_timeSinceLastRangeAttack = sf::Time::Zero;
+        }
     }
     m_collisionBox.setPosition(m_sprite.getPosition());
     m_gravityBox.setPosition(m_sprite.getPosition() + m_gravityBoxOffSet);
-    updateMushroomAnimation(m_deltaTime, m_player);
+    updateGoblinAnimation(m_deltaTime, m_player);
 
-    for (auto& projectile : m_gasProjectiles)
+    for (auto& bomb : m_bombs)
     {
-        projectile.update(m_deltaTime, m_gameBlocks, m_player);
+        bomb.update(m_deltaTime, m_gameBlocks);
+
+        if (bomb.getExplosionHitbox().intersects(m_player.getBoundingBox()) && !bomb.hasDamagedPlayer())
+        {
+            m_player.takeDamage(20);
+            bomb.markPlayerDamaged();
+        }
     }
 
-    m_gasProjectiles.erase(std::remove_if(m_gasProjectiles.begin(), m_gasProjectiles.end(),
-        [](const GasProjectile& proj) { return proj.isDestroyed(); }), m_gasProjectiles.end());
-
+    m_bombs.erase(std::remove_if(m_bombs.begin(), m_bombs.end(),
+        [](EnemyBomb& bomb) { return bomb.isDestroyed(); }), m_bombs.end());
 }
 
-void CorruptedMushroom::render(sf::RenderWindow& m_window)
+void Goblin::render(sf::RenderWindow& m_window)
 {
     m_window.draw(m_sprite);
 
@@ -117,54 +121,61 @@ void CorruptedMushroom::render(sf::RenderWindow& m_window)
         }
     }
 
-    for (auto& projectile : m_gasProjectiles)
+    for (auto& bomb : m_bombs)
     {
-        projectile.render(m_window);
+        bomb.render(m_window);
     }
 }
 
-void CorruptedMushroom::loadTextures()
+void Goblin::loadTextures()
 {
-    if (!m_idleTexture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\Idle.png"))
+    if (!m_idleTexture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Idle.png"))
     {
-        std::cout << "problem loading Mushroom idle image" << std::endl;
+        std::cout << "problem loading Goblin Idle image" << std::endl;
     }
 
-    if (!m_walkTexture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\Run.png"))
+    if (!m_walkTexture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Run.png"))
     {
-        std::cout << "problem loading Mushroom walk image" << std::endl;
+        std::cout << "problem loading Goblin walk image" << std::endl;
     }
 
-    if (!m_attack1Texture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\Attack.png"))
+    if (!m_attack1Texture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Attack.png"))
     {
-        std::cout << "problem loading Mushroom attack1 image" << std::endl;
+        std::cout << "problem loading Goblin attack1 image" << std::endl;
     }
 
-    if (!m_attack2Texture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\Attack2.png"))
+    if (!m_attack2Texture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Attack2.png"))
     {
-        std::cout << "problem loading Mushroom attack2 image" << std::endl;
+        std::cout << "problem loading Goblin attack2 image" << std::endl;
     }
 
-    if (!m_attack3Texture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\Attack3.png"))
+    if (!m_attack3Texture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Attack3.png"))
     {
-        std::cout << "problem loading Mushroom attack3 image" << std::endl;
+        std::cout << "problem loading Goblin attack3 image" << std::endl;
     }
 
-    if (!m_deathTexture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\Death.png"))
+    if (!m_projectileTexture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Bomb_sprite.png"))
     {
-        std::cout << "problem loading Mushroom death image" << std::endl;
+        std::cout << "problem loading Goblin projectile image" << std::endl;
     }
 
-    if (!m_takeHitTexture.loadFromFile("Assets\\Images\\Enemies\\Mushroom\\TakeHit.png"))
+    if (!m_deathTexture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\Death.png"))
     {
-        std::cout << "problem loading Mushroom take hit image" << std::endl;
+        std::cout << "problem loading Goblin death image" << std::endl;
+    }
+
+    if (!m_takeHitTexture.loadFromFile("Assets\\Images\\Enemies\\Goblin\\TakeHit.png"))
+    {
+        std::cout << "problem loading Goblin take hit image" << std::endl;
     }
 }
 
-void CorruptedMushroom::loadFrames()
+void Goblin::loadFrames()
 {
     const int frameWidth = 150;
     const int frameHeight = 150;
+    const int bulletFrameWidth = 100;
+    const int bulletFrameHeight = 100;
 
     for (int i = 0; i < 4; ++i)
     {
@@ -186,9 +197,14 @@ void CorruptedMushroom::loadFrames()
         m_attack2Frames.push_back(sf::IntRect(i * frameWidth, 0, frameWidth, frameHeight));
     }
 
-    for (int i = 0; i < 11; ++i)
+    for (int i = 0; i < 12; ++i)
     {
         m_attack3Frames.push_back(sf::IntRect(i * frameWidth, 0, frameWidth, frameHeight));
+    }
+
+    for (int i = 0; i < 19; ++i)
+    {
+        m_projectileFrames.push_back(sf::IntRect(i * bulletFrameWidth, 0, bulletFrameWidth, bulletFrameHeight));
     }
 
     for (int i = 0; i < 4; ++i)
@@ -202,7 +218,7 @@ void CorruptedMushroom::loadFrames()
     }
 }
 
-void CorruptedMushroom::setupBoundingBox()
+void Goblin::setupBoundingBox()
 {
     m_collisionBox.setSize(sf::Vector2f(40, 40));
     m_collisionBox.setOrigin(m_collisionBox.getSize() / 2.0f);
@@ -224,7 +240,7 @@ void CorruptedMushroom::setupBoundingBox()
     m_attackDebugRect.setFillColor(sf::Color(255, 0, 0, 100));
 }
 
-void CorruptedMushroom::updateMushroomAnimation(sf::Time m_deltaTime, Player& m_player)
+void Goblin::updateGoblinAnimation(sf::Time m_deltaTime, Player& m_player)
 {
     if (m_animationState == EnemyState::ATTACK1 || m_animationState == EnemyState::ATTACK2)
     {
@@ -243,7 +259,7 @@ void CorruptedMushroom::updateMushroomAnimation(sf::Time m_deltaTime, Player& m_
                 {
                     if (m_attackRange.intersects(m_player.getBoundingBox()))
                     {
-                        m_player.takeDamage(6);
+                        m_player.takeDamage(5);
                     }
                 }
             }
@@ -266,8 +282,8 @@ void CorruptedMushroom::updateMushroomAnimation(sf::Time m_deltaTime, Player& m_
             {
                 m_isAttacking = false;
                 m_isIdling = true;
-                setState(EnemyState::IDLE);
                 m_timeIdleElapsed = sf::Time::Zero;
+                setState(EnemyState::IDLE);
             }
         }
     }
@@ -281,14 +297,15 @@ void CorruptedMushroom::updateMushroomAnimation(sf::Time m_deltaTime, Player& m_
             m_sprite.setTexture(m_attack3Texture);
             m_sprite.setTextureRect(m_attack3Frames[m_currentFrame]);
 
-            if (m_currentFrame == 9)
+            if (m_currentFrame == 10)
             {
-                spawnGasProjectiles();
+                throwBomb(m_player);
             }
 
             if (m_currentFrame == m_attack3Frames.size() - 1)
             {
                 m_isAttacking = false;
+                m_isIdling = true;
                 setState(EnemyState::IDLE);
                 m_timeIdleElapsed = sf::Time::Zero;
             }
@@ -300,20 +317,11 @@ void CorruptedMushroom::updateMushroomAnimation(sf::Time m_deltaTime, Player& m_
     }
 }
 
-void CorruptedMushroom::spawnGasProjectiles()
+void Goblin::throwBomb(Player& player)
 {
-    const int numProjectiles = 50;
-    const float baseSpeed = 5.0f;
-    const float speedVariance = 10.0f;
+    sf::Vector2f goblinPosition = m_sprite.getPosition();
+    sf::Vector2f playerPosition = player.getPosition();
+    sf::Vector2f targetPosition = playerPosition;
 
-    for (int i = 0; i < numProjectiles; ++i)
-    {
-        float angle = i * (360.0f / numProjectiles);
-        float radians = angle * 3.14159265f / 180.0f;
-
-        sf::Vector2f direction(std::cos(radians), std::sin(radians));
-        float randomSpeed = baseSpeed + static_cast<float>(std::rand() % static_cast<int>(speedVariance));
-
-        m_gasProjectiles.emplace_back(m_collisionBox.getPosition() - sf::Vector2f(20, 40), direction, randomSpeed);
-    }
+    m_bombs.emplace_back(goblinPosition, targetPosition);
 }

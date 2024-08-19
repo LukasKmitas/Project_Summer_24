@@ -17,11 +17,13 @@ public:
 
     bool checkCollisionWithPlayer(Player& m_player);
     bool isDestroyed() const;
-    sf::FloatRect getBoundingBox() const;
 
 private:
 
+    void initCollisionCircle();
+
     sf::Sprite m_sprite;
+    sf::CircleShape m_collisionCircle;
 
     sf::Vector2f m_direction;
     float m_speed = 300.0f;

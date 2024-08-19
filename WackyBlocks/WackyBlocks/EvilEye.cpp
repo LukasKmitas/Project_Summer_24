@@ -21,6 +21,10 @@ EvilEye::EvilEye(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
     m_visionAngle = 90.0f;
 }
 
+EvilEye::~EvilEye()
+{
+}
+
 void EvilEye::update(sf::Time m_deltaTime, Player& m_player)
 {
     if (!m_isDead)
@@ -90,19 +94,6 @@ void EvilEye::update(sf::Time m_deltaTime, Player& m_player)
             }
         }
 
-        for (auto& projectile : m_projectiles)
-        {
-            projectile.update(m_deltaTime, m_gameBlocks);
-            if (projectile.checkCollisionWithPlayer(const_cast<Player&>(m_player)))
-            {
-                // Sound or particle
-            }
-        }
-
-        // Remove destroyed projectiles
-        m_projectiles.erase(std::remove_if(m_projectiles.begin(), m_projectiles.end(),
-            [](const EnemyProjectile& proj) { return proj.isDestroyed(); }), m_projectiles.end());
-
         if (m_animationState == EnemyState::PATROL)
         {
             if (m_isWaiting)
@@ -117,6 +108,19 @@ void EvilEye::update(sf::Time m_deltaTime, Player& m_player)
     }
     m_collisionBox.setPosition(m_sprite.getPosition());
     updateEvilEyeAnimation(m_deltaTime, m_player);
+
+    for (auto& projectile : m_projectiles)
+    {
+        projectile.update(m_deltaTime, m_gameBlocks);
+        if (projectile.checkCollisionWithPlayer(const_cast<Player&>(m_player)))
+        {
+            // Sound or particle
+        }
+    }
+
+    // Remove destroyed projectiles
+    m_projectiles.erase(std::remove_if(m_projectiles.begin(), m_projectiles.end(),
+        [](const EnemyProjectile& proj) { return proj.isDestroyed(); }), m_projectiles.end());
 }
 
 void EvilEye::render(sf::RenderWindow& m_window)

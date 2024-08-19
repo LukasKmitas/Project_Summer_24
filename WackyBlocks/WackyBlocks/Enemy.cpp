@@ -37,6 +37,8 @@ void Enemy::render(sf::RenderWindow& m_window)
         // DEBUG STUFF
         m_window.draw(m_visionCone);
         m_window.draw(m_collisionBox);
+        m_window.draw(m_gravityBox);
+        m_window.draw(m_groundDetectionDebug);
 
         // Line in sight for player
         if (m_playerFound)
@@ -53,28 +55,41 @@ void Enemy::render(sf::RenderWindow& m_window)
 
 void Enemy::takeDamage(int m_damage)
 {
-    m_health -= m_damage;
-    if (m_health <= 0)
+    if (m_isShieldActive)
     {
-        m_isDead = true;
-        setState(EnemyState::DEATH);
+        std::cout << "Enemy is shielded" << std::endl;
+        return;
     }
     else
     {
-        if (m_animationState != EnemyState::ATTACK1 && m_animationState != EnemyState::ATTACK2 && m_animationState != EnemyState::ATTACK3)
+        m_health -= m_damage;
+        if (m_health <= 0)
         {
-            if (m_animationState != EnemyState::TAKE_HIT)
+            m_isDead = true;
+            setState(EnemyState::DEATH);
+        }
+        else
+        {
+            if (m_animationState != EnemyState::ATTACK1 && m_animationState != EnemyState::ATTACK2 && m_animationState != EnemyState::ATTACK3)
             {
-                m_previousState = m_animationState;
-                setState(EnemyState::TAKE_HIT);
+                if (m_animationState != EnemyState::TAKE_HIT)
+                {
+                    m_previousState = m_animationState;
+                    setState(EnemyState::TAKE_HIT);
+                }
             }
         }
     }
 }
 
-sf::FloatRect Enemy::getBoundingBox() const
+sf::FloatRect Enemy::getCollisionBoundingBox() const
 {
     return m_collisionBox.getGlobalBounds();
+}
+
+sf::FloatRect Enemy::getGravityBoundingBox() const
+{
+    return m_gravityBox.getGlobalBounds();
 }
 
 bool Enemy::isDead() const
@@ -105,20 +120,11 @@ void Enemy::updateAnimation(sf::Time m_deltaTime)
             m_currentFrame = (m_currentFrame + 1) % m_attack2Frames.size();
             m_sprite.setTexture(m_attack2Texture);
             m_sprite.setTextureRect(m_attack2Frames[m_currentFrame]);
-            if (m_currentFrame == m_attack2Frames.size() - 1)
-            {
-                setState(m_previousState);
-            }
             break;
         case EnemyState::ATTACK3:
             m_currentFrame = (m_currentFrame + 1) % m_attack3Frames.size();
             m_sprite.setTexture(m_attack3Texture);
             m_sprite.setTextureRect(m_attack3Frames[m_currentFrame]);
-            if (m_currentFrame == m_attack3Frames.size() - 1)
-            {
-                m_hasShotProjectile = false;
-                setState(m_previousState);
-            }
             break;
         case EnemyState::PATROL:
             m_currentFrame = (m_currentFrame + 1) % m_walkFrames.size();
@@ -126,7 +132,10 @@ void Enemy::updateAnimation(sf::Time m_deltaTime)
             m_sprite.setTextureRect(m_walkFrames[m_currentFrame]);
             break;
         case EnemyState::DEATH:
-            m_currentFrame = (m_currentFrame + 1) % m_deathFrames.size();
+            if (m_currentFrame < m_deathFrames.size() - 1)
+            {
+                m_currentFrame = (m_currentFrame + 1) % m_deathFrames.size();
+            }
             m_sprite.setTexture(m_deathTexture);
             m_sprite.setTextureRect(m_deathFrames[m_currentFrame]);
             break;
@@ -157,6 +166,93 @@ void Enemy::updateHealthBar()
 
     float healthPercentage = static_cast<float>(m_health) / m_maxHealth;
     m_healthBar.setSize(sf::Vector2f(50.0f * healthPercentage, 5.0f));
+}
+
+void Enemy::applyGravity(sf::Time m_deltaTime)
+{
+    if (!m_isOnGround)
+    {
+        m_velocity.y += m_gravity * m_deltaTime.asSeconds();
+    }
+    else
+    {
+        m_velocity.y = 0;
+    }
+
+    sf::Vector2f newPosition = m_sprite.getPosition() + m_velocity * m_deltaTime.asSeconds();
+
+    m_sprite.setPosition(newPosition);
+    m_gravityBox.setPosition(m_sprite.getPosition() + m_gravityBoxOffSet);
+    m_isOnGround = false;
+
+    for (const auto& block : m_gameBlocks)
+    {
+        if (!block.traversable && block.shape.getGlobalBounds().intersects(getGravityBoundingBox()))
+        {
+            if (m_velocity.y > 0)
+            {
+                newPosition.y = block.shape.getPosition().y;
+                m_isOnGround = true;
+
+                m_sprite.setPosition(newPosition - m_spriteOffSet);
+                m_gravityBox.setPosition(m_sprite.getPosition() + m_gravityBoxOffSet);
+            }
+            break;
+        }
+    }
+}
+
+void Enemy::patrol(sf::Time m_deltaTime)
+{
+    m_moveDirection = m_movingDirection ? 1.0f : -1.0f;
+    m_velocity.x = m_speed * m_moveDirection;
+
+    sf::FloatRect detectionBox = m_collisionBox.getGlobalBounds();
+    detectionBox.left += m_moveDirection * 30.0f;
+
+    bool blocked = false;
+    bool edgeDetected = false;
+
+    for (const auto& block : m_gameBlocks)
+    {
+        if (!block.traversable && block.shape.getGlobalBounds().intersects(detectionBox))
+        {
+            blocked = true;
+            break;
+        }
+    }
+
+    m_groundDetectionBox = m_collisionBox.getGlobalBounds();
+    m_groundDetectionBox.left += m_moveDirection * 30.0f;
+    m_groundDetectionBox.top += 40.0f;
+    m_groundDetectionDebug.setPosition(m_groundDetectionBox.left, m_groundDetectionBox.top);
+
+    for (const auto& block : m_gameBlocks)
+    {
+        if (!block.traversable && block.shape.getGlobalBounds().intersects(m_groundDetectionBox))
+        {
+            edgeDetected = true;
+            break;
+        }
+    }
+
+    if (!edgeDetected || blocked)
+    {
+        m_velocity.x = 0;
+        m_isIdling = true;
+        setState(EnemyState::IDLE);
+    }
+
+    m_sprite.move(m_velocity * m_deltaTime.asSeconds());
+
+    if (m_movingDirection)
+    {
+        m_sprite.setScale(1.0f, 1.0f);
+    }
+    else
+    {
+        m_sprite.setScale(-1.0f, 1.0f);
+    }
 }
 
 void Enemy::initVisionCone()

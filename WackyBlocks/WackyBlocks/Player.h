@@ -54,7 +54,7 @@ public:
     void setCurrentFrame(int m_frame);
     void setState(PlayerState m_state);
     void updateFacingDirection(float m_x);
-    void takeDamage(int m_amount);
+    void takeDamage(float m_amount);
     void heal(int m_amount);
     void shootBullet(const sf::Vector2f& m_target);
     void applyKnockback(const sf::Vector2f& m_force, sf::Time m_duration);
@@ -152,7 +152,7 @@ private:
     int m_frameCount = 0;
   
     int m_otherPlayerFacingDirection = 1;
-    int m_health = 100;
+    float m_health = 100;
     int m_maxHealth = 100;
     int m_currentAmmo = 100;
     int m_totalAmmo = 100;

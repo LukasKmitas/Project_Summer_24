@@ -10,6 +10,9 @@ EnemyProjectile::EnemyProjectile(const sf::Vector2f& m_position, const sf::Vecto
 
     m_frameTime = sf::seconds(0.1f);
     m_currentFrameTime = sf::Time::Zero;
+
+    initCollisionCircle();
+    m_collisionCircle.setPosition(m_position);
 }
 
 void EnemyProjectile::update(sf::Time m_deltaTime, const std::vector<Block>& blocks)
@@ -21,10 +24,11 @@ void EnemyProjectile::update(sf::Time m_deltaTime, const std::vector<Block>& blo
         if (!m_isInDestructionSequence)
         {
             m_sprite.move(m_direction * m_speed * m_deltaTime.asSeconds());
+            m_collisionCircle.setPosition(m_sprite.getPosition());
 
             for (const auto& block : blocks)
             {
-                if (!block.traversable && block.shape.getGlobalBounds().intersects(getBoundingBox()))
+                if (!block.traversable && block.shape.getGlobalBounds().intersects(m_collisionCircle.getGlobalBounds()))
                 {
                     m_isInDestructionSequence = true;
                     m_currentFrame = m_destructionStartFrame;
@@ -66,6 +70,7 @@ void EnemyProjectile::render(sf::RenderWindow& m_window)
     if (!m_isDestroyed)
     {
         m_window.draw(m_sprite);
+        m_window.draw(m_collisionCircle);
     }
 }
 
@@ -74,14 +79,18 @@ bool EnemyProjectile::isDestroyed() const
     return m_isDestroyed;
 }
 
-sf::FloatRect EnemyProjectile::getBoundingBox() const
+void EnemyProjectile::initCollisionCircle()
 {
-    return m_sprite.getGlobalBounds();
+    m_collisionCircle.setRadius(15.0f);
+    m_collisionCircle.setOrigin(m_collisionCircle.getRadius(), m_collisionCircle.getRadius());
+    m_collisionCircle.setFillColor(sf::Color::Transparent);
+    m_collisionCircle.setOutlineColor(sf::Color::Yellow);
+    m_collisionCircle.setOutlineThickness(2);
 }
 
 bool EnemyProjectile::checkCollisionWithPlayer(Player& m_player)
 {
-    if (!m_isInDestructionSequence && getBoundingBox().intersects(m_player.getBoundingBox()))
+    if (!m_isInDestructionSequence && m_collisionCircle.getGlobalBounds().intersects(m_player.getBoundingBox()))
     {
         m_player.takeDamage(10);
         m_isInDestructionSequence = true;

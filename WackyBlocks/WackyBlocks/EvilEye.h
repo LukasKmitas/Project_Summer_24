@@ -10,6 +10,7 @@ class EvilEye : public Enemy
 public:
 
     EvilEye(const sf::Vector2f& m_position, std::vector<Block>& m_blocks);
+    ~EvilEye();
 
     void update(sf::Time m_deltaTime, Player& m_player) override;
     void render(sf::RenderWindow& m_window) override;

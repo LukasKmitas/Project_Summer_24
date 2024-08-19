@@ -591,6 +591,18 @@ void Game::loadLevel(const std::string& m_fileName)
 		{
 			m_mushroomPositions.push_back(block.shape.getPosition());
 		}
+		else if (block.type == BlockType::SKELETON)
+		{
+			m_skeletonPositions.push_back(block.shape.getPosition());
+		}
+		else if (block.type == BlockType::GOBLIN)
+		{
+			m_goblinPositions.push_back(block.shape.getPosition());
+		}
+		else if (block.type == BlockType::ENEMY_DEMON_BOSS)
+		{
+			m_demonBossPositions.push_back(block.shape.getPosition());
+		}
 		else if (block.type == BlockType::END_GATE)
 		{
 			m_portalSprite.setPosition(block.shape.getPosition());
@@ -685,6 +697,21 @@ void Game::loadLevel(const std::string& m_fileName)
 	for (const auto& pos : m_mushroomPositions)
 	{
 		m_enemies.push_back(std::make_unique<CorruptedMushroom>(pos, m_gameBlocks));
+	}
+
+	for (const auto& pos : m_skeletonPositions)
+	{
+		m_enemies.push_back(std::make_unique<Skeleton>(pos, m_gameBlocks));
+	}
+
+	for (const auto& pos : m_goblinPositions)
+	{
+		m_enemies.push_back(std::make_unique<Goblin>(pos, m_gameBlocks));
+	}
+
+	for (const auto& pos : m_demonBossPositions)
+	{
+		m_enemies.push_back(std::make_unique<DemonKing>(pos, m_gameBlocks));
 	}
 
 	std::vector<sf::RectangleShape> shapes;
@@ -994,7 +1021,7 @@ void Game::updateBulletCollisionsForEnemy()
 
 		for (auto& enemy : m_enemies)
 		{
-			if (!enemy->isDead() && bullet.shape.getGlobalBounds().intersects(enemy->getBoundingBox()))
+			if (!enemy->isDead() && bullet.shape.getGlobalBounds().intersects(enemy->getCollisionBoundingBox()))
 			{
 				collision = true;
 				enemy->takeDamage(6);

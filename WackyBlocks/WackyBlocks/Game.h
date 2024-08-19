@@ -16,6 +16,9 @@
 #include "Enemy.h"
 #include "EvilEye.h"
 #include "CorruptedMushroom.h"
+#include "Skeleton.h"
+#include "Goblin.h"
+#include "DemonKing.h"
 
 struct ShopItem
 {
@@ -86,6 +89,9 @@ private:
 
 	std::vector<sf::Vector2f> m_evilEyePositions;
 	std::vector<sf::Vector2f> m_mushroomPositions;
+	std::vector<sf::Vector2f> m_skeletonPositions;
+	std::vector<sf::Vector2f> m_goblinPositions;
+	std::vector<sf::Vector2f> m_demonBossPositions;
 
 	// Shop stuff
 	sf::Text m_shopText;
@@ -114,6 +120,7 @@ private:
 	sf::IntRect m_portalFrameRect;
 	sf::Clock m_portalClock;
 	int m_portalCurrentFrame = 0;
+
 	// Shop
 	sf::Texture m_shopTexture;
 	sf::Sprite m_shopSprite;

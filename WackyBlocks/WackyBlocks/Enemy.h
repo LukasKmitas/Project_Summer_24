@@ -32,7 +32,9 @@ public:
 
 	virtual void takeDamage(int m_damage);
 
-	sf::FloatRect getBoundingBox() const;
+	sf::FloatRect getCollisionBoundingBox() const;
+    sf::FloatRect getGravityBoundingBox() const;
+
 	bool isDead() const;
 
 protected:
@@ -42,6 +44,8 @@ protected:
 
     void updateAnimation(sf::Time m_deltaTime);
     void updateHealthBar();
+    void applyGravity(sf::Time m_deltaTime);
+    void patrol(sf::Time m_deltaTime);
 
     void initVisionCone();
     void updateVisionCone();
@@ -56,6 +60,9 @@ protected:
     sf::Sprite m_sprite;
 
     sf::RectangleShape m_collisionBox;
+    sf::RectangleShape m_gravityBox;
+    sf::RectangleShape m_groundDetectionDebug;
+    sf::RectangleShape m_attackDebugRect;
     sf::RectangleShape m_healthBarBackground;
     sf::RectangleShape m_healthBar;
     sf::ConvexShape m_visionCone;
@@ -81,21 +88,39 @@ protected:
     std::vector<sf::IntRect> m_takeHitFrames;
 
     sf::Vector2f m_playerPos;
+    sf::Vector2f m_velocity;
+
+    sf::Vector2f m_spriteOffSet;
+    sf::Vector2f m_collisionBoxOffSet;
+    sf::Vector2f m_gravityBoxOffSet;
+
+    sf::FloatRect m_groundDetectionBox;
+    sf::FloatRect m_attackRange;
 
     int m_health = 100;
     float m_speed = 100.0f;
     float m_visionRange = 300.0f;
     float m_visionAngle = 100.0f;
+    float m_gravity = 500.0f;
+    float m_moveDirection = 0;
+
     const int m_numPoints = 30;
     const float m_maxHealth = 100.0f;
 
     int m_currentFrame = 0;
     sf::Time m_frameTime = sf::seconds(0.1f);
     sf::Time m_currentFrameTime = sf::Time::Zero;
+    sf::Time m_idleTime = sf::seconds(3.0f);
+    sf::Time m_timeIdleElapsed = sf::Time::Zero;
 
     bool m_isDead = false;
     bool m_playerFound = false;
     bool m_hasShotProjectile = false;
+    bool m_isOnGround = false;
+    bool m_movingDirection = true;
+    bool m_isIdling = false;
+    bool m_isAttacking = false;
+    bool m_isShieldActive = false;
 
 };
 

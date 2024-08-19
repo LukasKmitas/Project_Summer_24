@@ -934,7 +934,7 @@ void Player::updateFacingDirection(float m_x)
     m_previousX = m_x;
 }
 
-void Player::takeDamage(int m_amount)
+void Player::takeDamage(float m_amount)
 {
     m_health -= m_amount;
     if (m_health < 0)
