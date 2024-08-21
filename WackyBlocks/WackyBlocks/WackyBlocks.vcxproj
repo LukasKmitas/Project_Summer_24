@@ -155,6 +155,7 @@
     <ClCompile Include="EnemyBomb.cpp" />
     <ClCompile Include="EnemyProjectile.cpp" />
     <ClCompile Include="EvilEye.cpp" />
+    <ClCompile Include="ExplosionManager.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GasProjectile.cpp" />
     <ClCompile Include="Goblin.cpp" />
@@ -167,6 +168,8 @@
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Skeleton.cpp" />
     <ClCompile Include="SoundManager.cpp" />
+    <ClCompile Include="TrapExplosion.cpp" />
+    <ClCompile Include="TrapSpikes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Block.h" />
@@ -178,6 +181,7 @@
     <ClInclude Include="EnemyBomb.h" />
     <ClInclude Include="EnemyProjectile.h" />
     <ClInclude Include="EvilEye.h" />
+    <ClInclude Include="ExplosionManager.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameStates.h" />
     <ClInclude Include="GasProjectile.h" />
@@ -192,6 +196,8 @@
     <ClInclude Include="ServerData.h" />
     <ClInclude Include="Skeleton.h" />
     <ClInclude Include="SoundManager.h" />
+    <ClInclude Include="TrapExplosion.h" />
+    <ClInclude Include="TrapSpikes.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="ASSETS\IMAGES\SFML-LOGO.png" />

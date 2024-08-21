@@ -6,6 +6,7 @@
 #include <iostream>
 #include "Block.h"
 #include "SoundManager.h"
+#include "ExplosionManager.h"
 
 enum class PlayerState
 {

@@ -751,6 +751,24 @@ void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlock
                 }
                 break; 
             }
+            else if (block.type == BlockType::TRAP_BARREL && bulletIt->shape.getGlobalBounds().intersects(block.shape.getGlobalBounds()))
+            {
+                collision = true;
+                bool destroyed = block.takeDamage(100);
+
+                if (destroyed)
+                {
+                    ExplosionManager::getInstance().spawnExplosion(block.shape.getPosition());
+                    blockIt = m_gameBlocks.erase(blockIt);
+                    std::cout << "Trap barrel exploded" << std::endl;
+                }
+                else
+                {
+                    ++blockIt;
+                }
+
+                break;
+            }
             else
             {
                 ++blockIt;

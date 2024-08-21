@@ -28,6 +28,12 @@
     <Filter Include="Source Files\Enemy">
       <UniqueIdentifier>{7f16e3cb-0386-4514-bd92-005c1c47dcc8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Trap">
+      <UniqueIdentifier>{e0354a93-6fd9-4b45-b299-0c5067956714}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Trap">
+      <UniqueIdentifier>{4462df22-62f6-43b1-a3d9-c86693ff7bb3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -89,6 +95,15 @@
     </ClCompile>
     <ClCompile Include="CoinManager.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TrapExplosion.cpp">
+      <Filter>Source Files\Trap</Filter>
+    </ClCompile>
+    <ClCompile Include="ExplosionManager.cpp">
+      <Filter>Source Files\Trap</Filter>
+    </ClCompile>
+    <ClCompile Include="TrapSpikes.cpp">
+      <Filter>Source Files\Trap</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -160,6 +175,15 @@
     </ClInclude>
     <ClInclude Include="CoinManager.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrapExplosion.h">
+      <Filter>Header Files\Trap</Filter>
+    </ClInclude>
+    <ClInclude Include="ExplosionManager.h">
+      <Filter>Header Files\Trap</Filter>
+    </ClInclude>
+    <ClInclude Include="TrapSpikes.h">
+      <Filter>Header Files\Trap</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

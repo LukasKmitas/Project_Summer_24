@@ -20,6 +20,8 @@
 #include "Goblin.h"
 #include "DemonKing.h"
 #include "CoinManager.h"
+#include "ExplosionManager.h"
+#include "TrapSpikes.h"
 
 struct ShopItem
 {
@@ -50,6 +52,7 @@ private:
 
 	std::vector<Block> m_gameBlocks;
 	std::vector<std::unique_ptr<Enemy>> m_enemies;
+	std::vector<std::unique_ptr<TrapSpikes>> m_spikes;
 
 	void processEvents();
 	void processKeys(sf::Event t_event);

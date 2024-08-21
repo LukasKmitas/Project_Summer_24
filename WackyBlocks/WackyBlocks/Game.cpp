@@ -442,6 +442,11 @@ void Game::update(sf::Time t_deltaTime)
 			updateShopAnimation();
 			createLightMap();
 			checkIfPlayerIsAlive();
+			ExplosionManager::getInstance().update(t_deltaTime, m_player, m_enemies);
+			for (auto& spike : m_spikes)
+			{
+				spike->update(t_deltaTime, m_player, m_enemies);
+			}
 		}
 	}
 }
@@ -523,6 +528,11 @@ void Game::render()
 			{
 				m_window.draw(m_loseText);
 			}
+		}
+		ExplosionManager::getInstance().render(m_window);
+		for (auto& spike : m_spikes)
+		{
+			spike->render(m_window);
 		}
 	}
 
@@ -623,6 +633,10 @@ void Game::loadLevel(const std::string& m_fileName)
 		{
 			m_player.setPosition(block.shape.getPosition().x, block.shape.getPosition().y - (block.shape.getSize().y / 2));
 		}
+		else if (block.type == BlockType::TRAP_SPIKE)
+		{
+			m_spikes.push_back(std::make_unique<TrapSpikes>(block.shape.getPosition()));
+		}
 		else if (block.type == BlockType::EVIL_EYE)
 		{
 			m_evilEyePositions.push_back(block.shape.getPosition());
@@ -691,10 +705,6 @@ void Game::loadLevel(const std::string& m_fileName)
 			case BlockType::LAVA:
 				block.shape.setFillColor(sf::Color(255, 70, 0));
 				textureLoaded = true;
-				break;
-			case BlockType::TRAP_SPIKE:
-				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\spike.png");
-				block.shape.setTexture(texture);
 				break;
 			case BlockType::TRAP_BARREL:
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\barrel.png");
