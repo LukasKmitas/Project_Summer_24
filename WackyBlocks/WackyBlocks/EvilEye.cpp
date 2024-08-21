@@ -19,6 +19,7 @@ EvilEye::EvilEye(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
     m_speed = 50;
     m_visionRange = 300.0f;
     m_visionAngle = 90.0f;
+    m_numCoins = 6;
 }
 
 EvilEye::~EvilEye()

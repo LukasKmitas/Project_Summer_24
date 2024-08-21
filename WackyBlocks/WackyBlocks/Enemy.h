@@ -7,6 +7,7 @@
 #include "Block.h"
 #include "Global.h"
 #include "Player.h"
+#include "CoinManager.h"
 
 enum class EnemyState 
 {
@@ -34,6 +35,8 @@ public:
 
 	sf::FloatRect getCollisionBoundingBox() const;
     sf::FloatRect getGravityBoundingBox() const;
+
+    static int getTotalDeathCount();
 
 	bool isDead() const;
 
@@ -97,7 +100,9 @@ protected:
     sf::FloatRect m_groundDetectionBox;
     sf::FloatRect m_attackRange;
 
+    int m_numCoins = 3;
     int m_health = 100;
+    static int m_deathCount;
     float m_speed = 100.0f;
     float m_visionRange = 300.0f;
     float m_visionAngle = 100.0f;

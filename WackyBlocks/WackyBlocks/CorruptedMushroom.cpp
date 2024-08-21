@@ -19,6 +19,7 @@ CorruptedMushroom::CorruptedMushroom(const sf::Vector2f& m_position, std::vector
     m_visionAngle = 110.0f;
     m_spriteOffSet = sf::Vector2f(0, 65);
     m_gravityBoxOffSet = sf::Vector2f(0, 24);
+    m_numCoins = 7;
 }
 
 CorruptedMushroom::~CorruptedMushroom()

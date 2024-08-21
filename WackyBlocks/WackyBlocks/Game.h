@@ -19,6 +19,7 @@
 #include "Skeleton.h"
 #include "Goblin.h"
 #include "DemonKing.h"
+#include "CoinManager.h"
 
 struct ShopItem
 {
@@ -64,9 +65,14 @@ private:
 	void updatePortalAnimation();
 	void updateShopAnimation();
 	void updateShopTextAnimation();
+	void updatePortalTextAnimation();
 	void renderLevelAssets();
 	void updateBlocks();
-	void updateBulletCollisionsForEnemy();
+	void updatePlayerAttackCollisionsForEnemy();
+	void updateCoins(sf::Time m_deltaTime);
+	void setupWinLoseScreens();
+	void showStats();
+	void checkIfPlayerIsAlive();
 
 	// Server stuff
 	void initNetwork();
@@ -115,11 +121,15 @@ private:
 
 	// Animation stuff
 	// Portal
+	sf::Text m_portalText;
 	sf::Texture m_portalTexture;
 	sf::Sprite m_portalSprite;
 	sf::IntRect m_portalFrameRect;
 	sf::Clock m_portalClock;
 	int m_portalCurrentFrame = 0;
+	float m_portalTextYOffset = 0.0f;
+	float m_portalTextYDirection = 1.0f;
+	bool m_showPortalText = false;
 
 	// Shop
 	sf::Texture m_shopTexture;
@@ -151,6 +161,15 @@ private:
 	bool m_isClient = false;
 	bool m_gameStarted = false;
 	bool m_isListening;
+
+	// Win/Lose screens
+	sf::RectangleShape m_endGameScreenBox;
+	sf::Text m_winText;
+	sf::Text m_loseText;
+	sf::Text m_statsText;
+	int m_enemiesKilled = 0;
+	bool m_winOrLose = false;
+	bool m_showEndGameScreen = false;
 
 	bool m_exitGame;
 

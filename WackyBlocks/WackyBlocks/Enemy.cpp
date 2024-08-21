@@ -1,5 +1,7 @@
 #include "Enemy.h"
 
+int Enemy::m_deathCount = 0;
+
 Enemy::Enemy(const sf::Vector2f& position, std::vector<Block>& m_blocks)
     : m_animationState(EnemyState::IDLE), m_gameBlocks(m_blocks)
 {
@@ -66,7 +68,10 @@ void Enemy::takeDamage(int m_damage)
         if (m_health <= 0)
         {
             m_isDead = true;
+            m_deathCount++;
             setState(EnemyState::DEATH);
+            CoinManager::getInstance().spawnCoins(m_numCoins, m_sprite.getPosition() + sf::Vector2f(0, -20));
+            std::cout << "Number of coins dropped: " << m_numCoins << std::endl;
         }
         else
         {
@@ -90,6 +95,11 @@ sf::FloatRect Enemy::getCollisionBoundingBox() const
 sf::FloatRect Enemy::getGravityBoundingBox() const
 {
     return m_gravityBox.getGlobalBounds();
+}
+
+int Enemy::getTotalDeathCount()
+{
+    return m_deathCount;
 }
 
 bool Enemy::isDead() const

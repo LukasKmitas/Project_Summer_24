@@ -102,6 +102,16 @@ PlayerState Player::getState() const
     return m_animationState;
 }
 
+std::vector<EnergyWave>& Player::getEnergyWaves()
+{
+    return m_energyWaves;
+}
+
+sf::RectangleShape& Player::getAttackCollisionBox()
+{
+    return m_attackCollisionBox;
+}
+
 void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     bool moving = false;
@@ -403,7 +413,6 @@ void Player::updateAnimation(sf::Time t_deltaTime)
                 {
                     launchEnergyWave();
                 }
-                std::cout << "FIRST RECT" << std::endl;
             }
             else
             {
@@ -422,7 +431,6 @@ void Player::updateAnimation(sf::Time t_deltaTime)
                 {
                     launchEnergyWave();
                 }
-                std::cout << "FIRST RECT" << std::endl;
             }
             else
             {
@@ -835,26 +843,17 @@ void Player::updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m
         it->sprite.move(it->direction * t_deltaTime.asSeconds());
         it->elapsedTime += t_deltaTime;
 
-        bool shouldRemove = false;
-
-        if (it->elapsedTime >= it->lifetime)
+        sf::FloatRect waveBounds = it->sprite.getGlobalBounds();
+        for (const auto& block : m_gameBlocks)
         {
-            shouldRemove = true;
-        }
-        else
-        {
-            sf::FloatRect waveBounds = it->sprite.getGlobalBounds();
-            for (const auto& block : m_gameBlocks)
+            if (!block.traversable && block.shape.getGlobalBounds().intersects(waveBounds))
             {
-                if (!block.traversable && block.shape.getGlobalBounds().intersects(waveBounds))
-                {
-                    shouldRemove = true;
-                    break;
-                }
+                it->isDestroyed = true;
+                break;
             }
         }
 
-        if (shouldRemove)
+        if (it->isDestroyed || it->elapsedTime >= it->lifetime)
         {
             it = m_energyWaves.erase(it);
         }
@@ -955,10 +954,10 @@ void Player::heal(int m_amount)
     updateHealthBar();
 }
 
-bool Player::isNearShop(const sf::Vector2f& m_shopPosition) const
+bool Player::isNear(const sf::Vector2f& m_objectPosition) const
 {
-    float distance = std::sqrt(std::pow(m_shopPosition.x - m_playerSprite.getPosition().x, 2) + 
-                               std::pow(m_shopPosition.y - m_playerSprite.getPosition().y, 2));
+    float distance = std::sqrt(std::pow(m_objectPosition.x - m_playerSprite.getPosition().x, 2) + 
+                               std::pow(m_objectPosition.y - m_playerSprite.getPosition().y, 2));
     return distance < 50.0f;
 }
 
@@ -991,6 +990,11 @@ void Player::upgradeEnergyWaveAttack()
     m_unlockedEnergyWaveAttack = true;
 }
 
+void Player::resetAttackDamage()
+{
+    m_hasDealtDamage = false;
+}
+
 int Player::getFrameCountForState(PlayerState m_state) const
 {
     switch (m_state)
@@ -1020,4 +1024,14 @@ int Player::getHealth() const
 bool Player::isPlayerAlive() const
 {
     return m_isPlayerDead;
+}
+
+bool Player::isAttacking() const
+{
+    return m_isAttacking;
+}
+
+bool Player::isAttacking2() const
+{
+    return m_isAttacking2;
 }

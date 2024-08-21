@@ -19,6 +19,7 @@ Skeleton::Skeleton(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
     m_visionAngle = 50.0f;
     m_spriteOffSet = sf::Vector2f(0, 65);
     m_gravityBoxOffSet = sf::Vector2f(0, 24);
+    m_numCoins = 5;
 }
 
 Skeleton::~Skeleton()

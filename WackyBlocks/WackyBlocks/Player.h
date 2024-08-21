@@ -36,6 +36,7 @@ struct EnergyWave
     sf::Vector2f direction;
     sf::Time lifetime;
     sf::Time elapsedTime;
+    bool isDestroyed = false;
 };
 
 class Player
@@ -59,23 +60,30 @@ public:
     void shootBullet(const sf::Vector2f& m_target);
     void applyKnockback(const sf::Vector2f& m_force, sf::Time m_duration);
 
-    bool isNearShop(const sf::Vector2f& m_shopPosition) const;
+    bool isNear(const sf::Vector2f& m_objectPosition) const;
     void upgradeHealth();
     void upgradeBullets();
     void upgradeAmmo();
     void upgradeDoubleJump();
     void upgradeEnergyWaveAttack();
+    void resetAttackDamage();
 
     int getCurrentFrame() const;
     int getFrameCountForState(PlayerState m_state) const;
     int getHealth() const;
     bool isPlayerAlive() const;
+    bool isAttacking() const;
+    bool isAttacking2() const;
     PlayerState getState() const;
 
+    std::vector<EnergyWave>& getEnergyWaves();
+    sf::RectangleShape& getAttackCollisionBox();
     sf::FloatRect getBoundingBox() const;
     sf::FloatRect getGroundDetectionBox() const;
     sf::Vector2f getPosition() const;
     std::vector<Bullet>& getBullets();
+
+    bool m_hasDealtDamage = false;
 
 private:
 

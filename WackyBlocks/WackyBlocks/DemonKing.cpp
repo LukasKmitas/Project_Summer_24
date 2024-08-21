@@ -21,6 +21,7 @@ DemonKing::DemonKing(const sf::Vector2f& m_position, std::vector<Block>& m_block
     m_spriteOffSet = sf::Vector2f(0, 117);
     m_collisionBoxOffSet = sf::Vector2f(0, 30);
     m_gravityBoxOffSet = sf::Vector2f(0, 74);
+    m_numCoins = 10;
 }
 
 DemonKing::~DemonKing()
@@ -67,17 +68,7 @@ void DemonKing::update(sf::Time m_deltaTime, Player& m_player)
 
         if (m_timeSinceLastAttack >= m_attackCooldown && m_attackDebugRect.getGlobalBounds().intersects(m_player.getBoundingBox()) && !m_isAttacking)
         {
-            int randomAttack = 1;
-
-            if (randomAttack == 1)
-            {
-                setState(EnemyState::ATTACK1);
-            }
-            else
-            {
-                setState(EnemyState::ATTACK2);
-            }
-
+            setState(EnemyState::ATTACK1);
             m_isAttacking = true;
             m_timeSinceLastAttack = sf::Time::Zero;
         }

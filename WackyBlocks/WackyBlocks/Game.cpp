@@ -20,6 +20,7 @@ Game::Game() :
 	loadBackground();
 	initLevelAssets();
 	initShop();
+	setupWinLoseScreens();
 	m_lightMapSprite.setTexture(m_lightMapTexture.getTexture());
 }
 
@@ -338,6 +339,12 @@ void Game::processKeys(sf::Event t_event)
 	{
 		m_shopOpen = !m_shopOpen;
 	}
+	else if (sf::Keyboard::E == t_event.key.code && m_showPortalText)
+	{
+		m_showEndGameScreen = true;
+		m_winOrLose = true;
+		showStats();
+	}
 
 	if (m_currentState == GameState::LEVEL_EDITOR)
 	{
@@ -366,61 +373,76 @@ void Game::update(sf::Time t_deltaTime)
 	}
 	else if (m_currentState == GameState::GAMEPLAY)
 	{
-		if (m_currentMode == GameMode::SINGLE_PLAYER)
+		if (!m_showEndGameScreen)
 		{
-			m_player.update(t_deltaTime, m_gameBlocks);
-			updateBulletCollisionsForEnemy();
-			if (m_shopOpen && !m_isDraggingScrollBarHandle)
+			if (m_currentMode == GameMode::SINGLE_PLAYER)
 			{
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+				m_player.update(t_deltaTime, m_gameBlocks);
+				updatePlayerAttackCollisionsForEnemy();
+				if (m_shopOpen && !m_isDraggingScrollBarHandle)
 				{
-					m_scrollOffset = std::max(0.0f, m_scrollOffset - 1.0f);
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+					{
+						m_scrollOffset = std::max(0.0f, m_scrollOffset - 1.0f);
+					}
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+					{
+						m_scrollOffset = std::min(m_scrollMaxOffset, m_scrollOffset + 1.0f);
+					}
+
+					for (int i = 0; i < m_shopItems.size(); ++i)
+					{
+						float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
+						m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
+						m_shopItems[i].text.setPosition(m_shopItems[i].button.getPosition().x + 10, m_shopItems[i].button.getPosition().y + 10);
+					}
+
+					float scrollHandleY = m_scrollBar.getPosition().y + (m_scrollOffset / m_scrollMaxOffset) * (m_scrollBar.getSize().y - 20);
+					m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, scrollHandleY);
 				}
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+
+				if (m_player.isNear(m_shopSprite.getPosition()))
 				{
-					m_scrollOffset = std::min(m_scrollMaxOffset, m_scrollOffset + 1.0f);
+					m_showShopText = true;
+					updateShopTextAnimation();
 				}
-
-				for (int i = 0; i < m_shopItems.size(); ++i)
+				else
 				{
-					float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
-					m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
-					m_shopItems[i].text.setPosition(m_shopItems[i].button.getPosition().x + 10, m_shopItems[i].button.getPosition().y + 10);
+					m_showShopText = false;
+					m_shopOpen = false;
 				}
 
-				float scrollHandleY = m_scrollBar.getPosition().y + (m_scrollOffset / m_scrollMaxOffset) * (m_scrollBar.getSize().y - 20);
-				m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, scrollHandleY);
-			}
+				if (m_player.isNear(m_portalSprite.getPosition()))
+				{
+					m_showPortalText = true;
+					updatePortalTextAnimation();
+				}
+				else
+				{
+					m_showPortalText = false;
+				}
 
-			if (m_player.isNearShop(m_shopSprite.getPosition()))
-			{
-				m_showShopText = true;
-				updateShopTextAnimation();
+				for (auto& enemy : m_enemies)
+				{
+					enemy->update(t_deltaTime, m_player);
+				}
+				updateBlocks();
 			}
-			else
+			else if (m_currentMode == GameMode::MULTIPLAYER)
 			{
-				m_showShopText = false;
-				m_shopOpen = false;
+				m_player.update(t_deltaTime, m_gameBlocks);
+				sendPlayerUpdate();
+				for (auto& enemy : m_enemies)
+				{
+					enemy->update(t_deltaTime, m_player);
+				}
 			}
-
-			for (auto& enemy : m_enemies)
-			{
-				enemy->update(t_deltaTime, m_player);
-			}
-			updateBlocks();
+			updateCoins(t_deltaTime);
+			updatePortalAnimation();
+			updateShopAnimation();
+			createLightMap();
+			checkIfPlayerIsAlive();
 		}
-		else if (m_currentMode == GameMode::MULTIPLAYER)
-		{
-			m_player.update(t_deltaTime, m_gameBlocks);
-			sendPlayerUpdate();
-			for (auto& enemy : m_enemies)
-			{
-				enemy->update(t_deltaTime, m_player);
-			}
-		}
-		updatePortalAnimation();
-		updateShopAnimation();
-		createLightMap();
 	}
 }
 
@@ -464,6 +486,10 @@ void Game::render()
 		{
 			m_window.draw(m_shopText);
 		}
+		if (m_showPortalText)
+		{
+			m_window.draw(m_portalText);
+		}
 		if (m_shopOpen)
 		{
 			m_window.draw(m_shopUIBackground);
@@ -483,6 +509,20 @@ void Game::render()
 			}
 			m_window.draw(m_scrollBar);
 			m_window.draw(m_scrollBarHandle);
+		}
+		CoinManager::getInstance().render(m_window);
+		if (m_showEndGameScreen)
+		{
+			m_window.draw(m_endGameScreenBox);
+			m_window.draw(m_statsText);
+			if (m_winOrLose)
+			{
+				m_window.draw(m_winText);
+			}
+			else
+			{
+				m_window.draw(m_loseText);
+			}
 		}
 	}
 
@@ -816,6 +856,11 @@ void Game::initLevelAssets()
 	m_shopText.setString("Press E");
 	m_shopText.setCharacterSize(24);
 	m_shopText.setFillColor(sf::Color::White);
+
+	m_portalText.setFont(m_font);
+	m_portalText.setString("Press E");
+	m_portalText.setCharacterSize(24);
+	m_portalText.setFillColor(sf::Color::White);
 }
 
 void Game::initShop()
@@ -966,6 +1011,20 @@ void Game::updateShopTextAnimation()
 	);
 }
 
+void Game::updatePortalTextAnimation()
+{
+	m_portalTextYOffset += m_portalTextYDirection * 0.5f;
+	if (m_portalTextYOffset > 5.0f || m_portalTextYOffset < -5.0f)
+	{
+		m_portalTextYDirection *= -1.0f;
+	}
+	m_portalText.setPosition
+	(
+		m_portalSprite.getPosition().x - m_portalText.getGlobalBounds().width / 2,
+		m_portalSprite.getPosition().y - m_portalSprite.getGlobalBounds().height / 2 - 30 + m_portalTextYOffset
+	);
+}
+
 void Game::renderLevelAssets()
 {
 	for (const auto& block : m_gameBlocks)
@@ -1012,7 +1071,7 @@ void Game::updateBlocks()
 	}
 }
 
-void Game::updateBulletCollisionsForEnemy()
+void Game::updatePlayerAttackCollisionsForEnemy()
 {
 	for (auto bulletIt = m_player.getBullets().begin(); bulletIt != m_player.getBullets().end();)
 	{
@@ -1037,6 +1096,115 @@ void Game::updateBulletCollisionsForEnemy()
 		{
 			++bulletIt;
 		}
+	}
+
+	for (auto& wave : m_player.getEnergyWaves())
+	{
+		if (wave.isDestroyed)
+		{
+			continue;
+		}
+
+		sf::FloatRect waveBounds = wave.sprite.getGlobalBounds();
+
+		for (auto& enemy : m_enemies)
+		{
+			if (waveBounds.intersects(enemy->getCollisionBoundingBox()))
+			{
+				enemy->takeDamage(6);
+				wave.isDestroyed = true;
+				break;
+			}
+		}
+	}
+
+	if (m_player.isAttacking() && !m_player.m_hasDealtDamage)
+	{
+		sf::FloatRect attackBox = m_player.getAttackCollisionBox().getGlobalBounds();
+
+		for (auto& enemy : m_enemies)
+		{
+			if (attackBox.intersects(enemy->getCollisionBoundingBox()))
+			{
+				enemy->takeDamage(10);
+				m_player.m_hasDealtDamage = true;
+				break;
+			}
+		}
+	}
+	else if (m_player.isAttacking2() && !m_player.m_hasDealtDamage)
+	{
+		sf::FloatRect attackBox = m_player.getAttackCollisionBox().getGlobalBounds();
+
+		for (auto& enemy : m_enemies)
+		{
+			if (attackBox.intersects(enemy->getCollisionBoundingBox()))
+			{
+				enemy->takeDamage(15);
+				m_player.m_hasDealtDamage = true;
+				break;
+			}
+		}
+	}
+
+	if (!m_player.isAttacking() && !m_player.isAttacking2())
+	{
+		m_player.resetAttackDamage();
+	}
+}
+
+void Game::updateCoins(sf::Time m_deltaTime)
+{
+	CoinManager::getInstance().update(m_deltaTime, m_gameBlocks);
+	CoinManager::getInstance().handlePlayerCollision(m_player.getBoundingBox(), m_currency);
+	updateCurrencyText();
+}
+
+void Game::setupWinLoseScreens()
+{
+	m_endGameScreenBox.setSize(sf::Vector2f(400, 300));
+	m_endGameScreenBox.setFillColor(sf::Color(0, 0, 0, 255));
+	m_endGameScreenBox.setOutlineColor(sf::Color::Magenta);
+	m_endGameScreenBox.setOutlineThickness(1);
+	m_endGameScreenBox.setOrigin(m_endGameScreenBox.getSize() / 2.0f);
+	m_endGameScreenBox.setPosition(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f);
+
+	m_winText.setFont(m_font);
+	m_winText.setString("You Win!");
+	m_winText.setCharacterSize(40);
+	m_winText.setFillColor(sf::Color::White);
+	m_winText.setPosition(m_endGameScreenBox.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y - 100);
+
+	m_loseText.setFont(m_font);
+	m_loseText.setString("You Lose!");
+	m_loseText.setCharacterSize(40);
+	m_loseText.setFillColor(sf::Color::White);
+	m_loseText.setPosition(m_endGameScreenBox.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y - 100);
+
+	m_statsText.setFont(m_font);
+	m_statsText.setCharacterSize(30);
+	m_statsText.setFillColor(sf::Color::White);
+	m_statsText.setPosition(m_endGameScreenBox.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y);
+}
+
+void Game::showStats()
+{
+	int totalDeaths = Enemy::getTotalDeathCount();
+
+	std::string stats = "Enemies Killed: " + std::to_string(totalDeaths) + "\n";
+	stats += "Currency: " + std::to_string(m_currency);
+
+	m_statsText.setString(stats);
+	m_statsText.setPosition(m_endGameScreenBox.getPosition().x - m_statsText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y);
+}
+
+void Game::checkIfPlayerIsAlive()
+{
+	if (m_player.isPlayerAlive() == true) 
+	{
+		m_showEndGameScreen = true;
+		m_winOrLose = false;
+		showStats();
 	}
 }
 

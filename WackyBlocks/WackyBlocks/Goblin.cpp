@@ -19,6 +19,7 @@ Goblin::Goblin(const sf::Vector2f& m_position, std::vector<Block>& m_blocks)
     m_visionAngle = 100.0f;
     m_spriteOffSet = sf::Vector2f(0, 65);
     m_gravityBoxOffSet = sf::Vector2f(0, 24);
+    m_numCoins = 8;
 }
 
 Goblin::~Goblin()
@@ -98,7 +99,7 @@ void Goblin::update(sf::Time m_deltaTime, Player& m_player)
 
         if (bomb.getExplosionHitbox().intersects(m_player.getBoundingBox()) && !bomb.hasDamagedPlayer())
         {
-            m_player.takeDamage(20);
+            m_player.takeDamage(30);
             bomb.markPlayerDamaged();
         }
     }
