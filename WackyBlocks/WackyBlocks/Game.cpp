@@ -842,14 +842,6 @@ void Game::createLightMap()
     }
 
 	m_lightMapTexture.display();
-
-	sf::Texture lightTexture = m_lightMapTexture.getTexture();
-	sf::Image lightImage = lightTexture.copyToImage();
-
-	if (lightImage.saveToFile("lightMap.png"))
-	{
-		std::cout << "Light texture saved to lightMap.png" << std::endl;
-	}
 }
 
 void Game::initLevelAssets()

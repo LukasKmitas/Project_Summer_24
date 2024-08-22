@@ -161,11 +161,11 @@ private:
     int m_frameCount = 0;
   
     int m_otherPlayerFacingDirection = 1;
-    float m_health = 100;
-    int m_maxHealth = 100;
     int m_currentAmmo = 100;
     int m_totalAmmo = 100;
     int m_extraBulletCount = 0;
+    float m_health = 100;
+    float m_maxHealth = 100;
     float m_speed = 100.0f;
     float m_bulletSpeed = 500.0f;
     float m_jumpSpeed = 350.0f;
