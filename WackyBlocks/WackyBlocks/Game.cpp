@@ -484,7 +484,7 @@ void Game::render()
 		{
 			enemy->render(m_window);
 		}
-		//m_window.draw(m_lightMapSprite, sf::BlendMultiply);
+		m_window.draw(m_lightMapSprite, sf::BlendMultiply);
 		m_player.renderHealthUI(m_window);
 		m_window.draw(m_currencyText);
 		if (m_showShopText && !m_shopOpen)
@@ -842,6 +842,14 @@ void Game::createLightMap()
     }
 
 	m_lightMapTexture.display();
+
+	sf::Texture lightTexture = m_lightMapTexture.getTexture();
+	sf::Image lightImage = lightTexture.copyToImage();
+
+	if (lightImage.saveToFile("lightMap.png"))
+	{
+		std::cout << "Light texture saved to lightMap.png" << std::endl;
+	}
 }
 
 void Game::initLevelAssets()
