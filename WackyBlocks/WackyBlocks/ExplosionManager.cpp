@@ -10,14 +10,14 @@ void ExplosionManager::update(sf::Time m_deltaTime, Player& m_player, std::vecto
 
         if (explosionIt->checkPlayerCollision(m_player.getBoundingBox()))
         {
-            m_player.takeDamage(30);
+            m_player.takeDamage(50);
         }
 
         for (auto& enemy : m_enemies)
         {
             if (explosionIt->checkPlayerCollision(enemy->getCollisionBoundingBox()))
             {
-                enemy->takeDamage(30);
+                enemy->takeDamage(50);
             }
         }
 

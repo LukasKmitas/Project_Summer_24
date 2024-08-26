@@ -53,6 +53,7 @@ private:
 	std::vector<Block> m_gameBlocks;
 	std::vector<std::unique_ptr<Enemy>> m_enemies;
 	std::vector<std::unique_ptr<TrapSpikes>> m_spikes;
+	std::vector<LightSource> m_lightSources;
 
 	void processEvents();
 	void processKeys(sf::Event t_event);
@@ -75,7 +76,7 @@ private:
 	void updateCoins(sf::Time m_deltaTime);
 	void setupWinLoseScreens();
 	void showStats();
-	void checkIfPlayerIsAlive();
+	void checkPlayerState();
 
 	// Server stuff
 	void initNetwork();
@@ -152,8 +153,8 @@ private:
 	float playerLightIntensity = 1.0f;
 	float torchLightIntensity = 1.0f;
 	float m_playerLightRadius = 400.0f;
-	float m_torchLightRadius = 500.0f;
-	float m_shadowDistance = 400.0f;
+	float m_torchLightRadius = 400.0f;
+	float m_shadowDistance = 600.0f;
 
 	// Multiplayer
 	std::unique_ptr<sf::TcpSocket> m_socket;

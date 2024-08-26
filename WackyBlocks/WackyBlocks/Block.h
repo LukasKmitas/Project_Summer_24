@@ -11,8 +11,6 @@ enum class BlockType
     GRANITE,
     STONE,
     SAND,
-    WATER,
-    LAVA,
     TRAP_SPIKE, // Traps
     TRAP_BARREL,
     SKELETON, // Enemies

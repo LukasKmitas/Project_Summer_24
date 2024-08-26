@@ -72,7 +72,7 @@ std::vector<sf::Vertex> calculateLightPolygon(const sf::Vector2f& m_lightPos, fl
     return vertices;
 }
 
-std::vector<sf::Vertex> calculateShadowPolygon(const sf::Vector2f& m_lightPos, const sf::RectangleShape& m_block, float m_shadowDistance, float m_lightRadius, const sf::Vector2f& playerLightPos, float playerRadius)
+std::vector<sf::Vertex> calculateShadowPolygon(const sf::Vector2f& m_lightPos, const sf::RectangleShape& m_block, float m_shadowDistance, float m_lightRadius)
 {
     std::vector<sf::Vertex> shadowVertices;
 
@@ -129,4 +129,11 @@ sf::Vector2f normalize(const sf::Vector2f& m_vec)
     {
         return sf::Vector2f(0, 0);
     }
+}
+
+float distance(const sf::Vector2f& m_point1, const sf::Vector2f& m_point2)
+{
+    float dx = m_point2.x - m_point1.x;
+    float dy = m_point2.y - m_point1.y;
+    return std::sqrt(dx * dx + dy * dy);
 }

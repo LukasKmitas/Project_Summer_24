@@ -29,6 +29,7 @@ void EnemyBomb::update(sf::Time m_deltaTime, const std::vector<Block>& m_blocks)
             m_hasExploded = true;
             m_currentFrame = 0;
             m_explosionHitbox.setPosition(m_sprite.getPosition());
+            SoundManager::getInstance().playSound("grenade");
         }
 
         m_currentFrameTime += m_deltaTime;

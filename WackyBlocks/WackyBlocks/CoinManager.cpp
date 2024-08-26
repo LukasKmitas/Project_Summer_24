@@ -35,6 +35,7 @@ void CoinManager::handlePlayerCollision(const sf::FloatRect& m_playerBoundingBox
         {
             m_currency += 1;
             //std::cout << "Coin collected, Currency: " << m_currency << std::endl;
+            SoundManager::getInstance().playSound("pickup_coin");
             coin.destroyCoin();
         }
     }

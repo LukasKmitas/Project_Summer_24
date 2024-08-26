@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include "Block.h"
+#include "SoundManager.h"
 
 class EnemyBomb
 {

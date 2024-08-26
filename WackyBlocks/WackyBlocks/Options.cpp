@@ -57,13 +57,13 @@ void Options::handleMouseHover(sf::Vector2f m_mousePos)
     {
         float newVolume = std::min(std::max(m_mousePos.x - m_soundSlider.getPosition().x, 0.0f), m_soundSlider.getSize().x);
         SoundManager::getInstance().setGlobalSoundVolume(newVolume / m_soundSlider.getSize().x * 100);
-        updateSliderPosition(m_soundSliderHandle, SoundManager::getInstance().globalSoundVolume);
+        updateSliderPosition(m_soundSliderHandle, SoundManager::getInstance().m_globalSoundVolume);
     }
     else if (m_draggingMusic)
     {
         float newVolume = std::min(std::max(m_mousePos.x - m_musicSlider.getPosition().x, 0.0f), m_musicSlider.getSize().x);
         SoundManager::getInstance().setGlobalMusicVolume(newVolume / m_musicSlider.getSize().x * 100);
-        updateSliderPosition(m_musicSliderHandle, SoundManager::getInstance().globalMusicVolume);
+        updateSliderPosition(m_musicSliderHandle, SoundManager::getInstance().m_globalMusicVolume);
     }
 
     if (m_backButton.getGlobalBounds().contains(m_mousePos))
@@ -126,12 +126,12 @@ void Options::setupOptions()
     m_soundSliderHandle.setSize(sf::Vector2f(10.0f, 20.0f));
     m_soundSliderHandle.setFillColor(sf::Color::Red);
     m_soundSliderHandle.setPosition(centerX - sliderWidth / 2, centerY - 55.0f);
-    updateSliderPosition(m_soundSliderHandle, SoundManager::getInstance().globalSoundVolume);
+    updateSliderPosition(m_soundSliderHandle, SoundManager::getInstance().m_globalSoundVolume);
 
     m_musicSliderHandle.setSize(sf::Vector2f(10.0f, 20.0f));
     m_musicSliderHandle.setFillColor(sf::Color::Red);
     m_musicSliderHandle.setPosition(centerX - sliderWidth / 2, centerY + 45.0f);
-    updateSliderPosition(m_musicSliderHandle, SoundManager::getInstance().globalMusicVolume);
+    updateSliderPosition(m_musicSliderHandle, SoundManager::getInstance().m_globalMusicVolume);
 
     // Back button
     m_backButton.setSize(sf::Vector2f(100.0f, 50.0f));

@@ -413,6 +413,7 @@ void Player::updateAnimation(sf::Time t_deltaTime)
                 {
                     launchEnergyWave();
                 }
+                SoundManager::getInstance().playSound("swing1");
             }
             else
             {
@@ -431,6 +432,7 @@ void Player::updateAnimation(sf::Time t_deltaTime)
                 {
                     launchEnergyWave();
                 }
+                SoundManager::getInstance().playSound("swing2");
             }
             else
             {
@@ -743,6 +745,7 @@ void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlock
                 if (destroyed)
                 {
                     blockIt = m_gameBlocks.erase(blockIt);
+                    SoundManager::getInstance().playSound("platform");
                     std::cout << "Block destroyed" << std::endl;
                 }
                 else
@@ -760,6 +763,7 @@ void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlock
                 {
                     ExplosionManager::getInstance().spawnExplosion(block.shape.getPosition());
                     blockIt = m_gameBlocks.erase(blockIt);
+                    SoundManager::getInstance().playSound("trapXplosion");
                     std::cout << "Trap barrel exploded" << std::endl;
                 }
                 else

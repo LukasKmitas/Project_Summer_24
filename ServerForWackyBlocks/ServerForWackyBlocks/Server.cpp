@@ -15,7 +15,7 @@ void Server::run()
         std::cout << "Failed to bind listener socket to port " << PORT << std::endl;
         return;
     }
-    std::cout << "Server is starting..." << std::endl;
+    std::cout << "Server is starting on " << sf::IpAddress::getLocalAddress().toString() << std::endl;
     std::cout << "Server is listening on port: " << PORT << std::endl;
     std::cout << "Press 'i' for more information" << std::endl;
 

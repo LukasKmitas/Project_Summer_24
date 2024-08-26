@@ -178,6 +178,8 @@ void Game::processEvents()
 							loadLevel(m_mainMenu.getSelectedLevelFile());
 							m_currentState = GameState::GAMEPLAY;
 							m_mainMenu.clearParticles();
+							SoundManager::getInstance().stopMusic("MenuMusic");
+							SoundManager::getInstance().playNextTrack();
 							break;
 						case 7:
 							// Host Game
@@ -344,6 +346,7 @@ void Game::processKeys(sf::Event t_event)
 		m_showEndGameScreen = true;
 		m_winOrLose = true;
 		showStats();
+		SoundManager::getInstance().playSound("level_complete");
 	}
 
 	if (m_currentState == GameState::LEVEL_EDITOR)
@@ -375,73 +378,76 @@ void Game::update(sf::Time t_deltaTime)
 	{
 		if (!m_showEndGameScreen)
 		{
+			SoundManager::getInstance().updateMusicTrack();
+
+			if (m_shopOpen && !m_isDraggingScrollBarHandle)
+			{
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+				{
+					m_scrollOffset = std::max(0.0f, m_scrollOffset - 1.0f);
+				}
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+				{
+					m_scrollOffset = std::min(m_scrollMaxOffset, m_scrollOffset + 1.0f);
+				}
+
+				for (int i = 0; i < m_shopItems.size(); ++i)
+				{
+					float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
+					m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
+					m_shopItems[i].text.setPosition(m_shopItems[i].button.getPosition().x + 10, m_shopItems[i].button.getPosition().y + 10);
+				}
+
+				float scrollHandleY = m_scrollBar.getPosition().y + (m_scrollOffset / m_scrollMaxOffset) * (m_scrollBar.getSize().y - 20);
+				m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, scrollHandleY);
+			}
+
+			if (m_player.isNear(m_shopSprite.getPosition()))
+			{
+				m_showShopText = true;
+				updateShopTextAnimation();
+			}
+			else
+			{
+				m_showShopText = false;
+				m_shopOpen = false;
+			}
+
+			if (m_player.isNear(m_portalSprite.getPosition()))
+			{
+				m_showPortalText = true;
+				updatePortalTextAnimation();
+			}
+			else
+			{
+				m_showPortalText = false;
+			}
+
+			m_player.update(t_deltaTime, m_gameBlocks);
+
 			if (m_currentMode == GameMode::SINGLE_PLAYER)
 			{
-				m_player.update(t_deltaTime, m_gameBlocks);
-				updatePlayerAttackCollisionsForEnemy();
-				if (m_shopOpen && !m_isDraggingScrollBarHandle)
-				{
-					if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-					{
-						m_scrollOffset = std::max(0.0f, m_scrollOffset - 1.0f);
-					}
-					if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-					{
-						m_scrollOffset = std::min(m_scrollMaxOffset, m_scrollOffset + 1.0f);
-					}
-
-					for (int i = 0; i < m_shopItems.size(); ++i)
-					{
-						float newY = SCREEN_HEIGHT / 2 - 100 + i * 60 - m_scrollOffset;
-						m_shopItems[i].button.setPosition(SCREEN_WIDTH / 2 - 150, newY);
-						m_shopItems[i].text.setPosition(m_shopItems[i].button.getPosition().x + 10, m_shopItems[i].button.getPosition().y + 10);
-					}
-
-					float scrollHandleY = m_scrollBar.getPosition().y + (m_scrollOffset / m_scrollMaxOffset) * (m_scrollBar.getSize().y - 20);
-					m_scrollBarHandle.setPosition(m_scrollBar.getPosition().x + 10, scrollHandleY);
-				}
-
-				if (m_player.isNear(m_shopSprite.getPosition()))
-				{
-					m_showShopText = true;
-					updateShopTextAnimation();
-				}
-				else
-				{
-					m_showShopText = false;
-					m_shopOpen = false;
-				}
-
-				if (m_player.isNear(m_portalSprite.getPosition()))
-				{
-					m_showPortalText = true;
-					updatePortalTextAnimation();
-				}
-				else
-				{
-					m_showPortalText = false;
-				}
-
 				for (auto& enemy : m_enemies)
 				{
 					enemy->update(t_deltaTime, m_player);
 				}
-				updateBlocks();
 			}
 			else if (m_currentMode == GameMode::MULTIPLAYER)
 			{
-				m_player.update(t_deltaTime, m_gameBlocks);
 				sendPlayerUpdate();
+
 				for (auto& enemy : m_enemies)
 				{
 					enemy->update(t_deltaTime, m_player);
 				}
 			}
+			updatePlayerAttackCollisionsForEnemy();
+			updateBlocks();
 			updateCoins(t_deltaTime);
 			updatePortalAnimation();
 			updateShopAnimation();
 			createLightMap();
-			checkIfPlayerIsAlive();
+			checkPlayerState();
 			ExplosionManager::getInstance().update(t_deltaTime, m_player, m_enemies);
 			for (auto& spike : m_spikes)
 			{
@@ -484,7 +490,15 @@ void Game::render()
 		{
 			enemy->render(m_window);
 		}
+		CoinManager::getInstance().render(m_window);
+		ExplosionManager::getInstance().render(m_window);
+		for (auto& spike : m_spikes)
+		{
+			spike->render(m_window);
+		}
+		// Stuff above will be in the dark
 		m_window.draw(m_lightMapSprite, sf::BlendMultiply);
+		// Stuff below will be revealed at all times
 		m_player.renderHealthUI(m_window);
 		m_window.draw(m_currencyText);
 		if (m_showShopText && !m_shopOpen)
@@ -515,7 +529,6 @@ void Game::render()
 			m_window.draw(m_scrollBar);
 			m_window.draw(m_scrollBarHandle);
 		}
-		CoinManager::getInstance().render(m_window);
 		if (m_showEndGameScreen)
 		{
 			m_window.draw(m_endGameScreenBox);
@@ -528,11 +541,6 @@ void Game::render()
 			{
 				m_window.draw(m_loseText);
 			}
-		}
-		ExplosionManager::getInstance().render(m_window);
-		for (auto& spike : m_spikes)
-		{
-			spike->render(m_window);
 		}
 	}
 
@@ -698,14 +706,6 @@ void Game::loadLevel(const std::string& m_fileName)
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\sand.png");
 				block.shape.setTexture(texture);
 				break;
-			case BlockType::WATER:
-				block.shape.setFillColor(sf::Color(0, 0, 255));
-				textureLoaded = true;
-				break;
-			case BlockType::LAVA:
-				block.shape.setFillColor(sf::Color(255, 70, 0));
-				textureLoaded = true;
-				break;
 			case BlockType::TRAP_BARREL:
 				textureLoaded = texture->loadFromFile("Assets\\Images\\World\\barrel.png");
 				block.shape.setTexture(texture);
@@ -771,8 +771,7 @@ void Game::loadLevel(const std::string& m_fileName)
 			block.type == BlockType::GRANITE || 
 			block.type == BlockType::STONE ||
 			block.type == BlockType::SAND ||
-			block.type == BlockType::SHOP ||
-			block.type == BlockType::LAVA
+			block.type == BlockType::SHOP 
 			)
 		{
 			shapes.push_back(block.shape);
@@ -784,62 +783,49 @@ void Game::loadLevel(const std::string& m_fileName)
 void Game::createLightMap()
 {
 	m_lightMapTexture.clear(sf::Color::Black);
+	m_lightSources.clear();
 
-    std::unordered_set<const sf::RectangleShape*> shadowedBlocks;
+	// Add player light
+	m_lightSources.push_back({ m_player.getPosition() + sf::Vector2f(0, 10), m_playerLightRadius, playerLightIntensity });
 
-    // Add torch lights
-    for (const auto& block : m_gameBlocks)
-    {
-        if (block.type == BlockType::TORCH)
-        {
-            // Calculate light polygon for torch
-            auto torchLight = calculateLightPolygon(block.shape.getPosition(), m_torchLightRadius, torchLightIntensity, m_edges);
-            m_lightMapTexture.draw(&torchLight[0], torchLight.size(), sf::TrianglesFan, sf::BlendAdd);
+	// Add torch lights
+	for (const auto& block : m_gameBlocks)
+	{
+		if (block.type == BlockType::TORCH)
+		{
+			m_lightSources.push_back({ block.shape.getPosition() + sf::Vector2f(0, 10), m_torchLightRadius, torchLightIntensity });
+		}
+	}
 
-            // Calculate shadows for the torch
-            for (const auto& shadowBlock : m_gameBlocks)
-            {
-                if (shadowBlock.type == BlockType::DIRT ||
-                    shadowBlock.type == BlockType::GRANITE ||
-                    shadowBlock.type == BlockType::STONE ||
-                    shadowBlock.type == BlockType::SAND ||
-                    shadowBlock.type == BlockType::SHOP ||
-                    shadowBlock.type == BlockType::LAVA)
-                {
-                    auto shadowPolygon = calculateShadowPolygon(block.shape.getPosition(), shadowBlock.shape, m_shadowDistance, m_torchLightRadius, m_player.getPosition(), m_playerLightRadius);
-                    if (!shadowPolygon.empty())
-                    {
-                        shadowedBlocks.insert(&shadowBlock.shape);
-                        m_lightMapTexture.draw(&shadowPolygon[0], shadowPolygon.size(), sf::Quads, sf::BlendMultiply);
-                    }
-                }
-            }
-        }
-    }
+	for (const auto& light : m_lightSources)
+	{
+		// Calculate light polygon for the light source
+		auto lightPolygon = calculateLightPolygon(light.position, light.radius, light.intensity, m_edges);
+		m_lightMapTexture.draw(&lightPolygon[0], lightPolygon.size(), sf::TrianglesFan, sf::BlendAdd);
 
-    // Add player light
-    m_lightSource = m_player.getPosition();
-    auto playerLight = calculateLightPolygon(m_lightSource, m_playerLightRadius, playerLightIntensity, m_edges);
-    m_lightMapTexture.draw(&playerLight[0], playerLight.size(), sf::TrianglesFan, sf::BlendAdd);
+		// Calculate shadows for the light source
+		for (const auto& block : m_gameBlocks)
+		{
+			if (block.type == BlockType::DIRT ||
+				block.type == BlockType::GRANITE ||
+				block.type == BlockType::STONE ||
+				block.type == BlockType::SAND)
+			{
+				auto shadowPolygon = calculateShadowPolygon(light.position, block.shape, m_shadowDistance, light.radius);
+				if (!shadowPolygon.empty())
+				{
+					m_lightMapTexture.draw(&shadowPolygon[0], shadowPolygon.size(), sf::Quads, sf::BlendMultiply);
+				}
+			}
+		}
+	}
 
-    // Shadows from the players light source
-    for (const auto& block : m_gameBlocks)
-    {
-        if ((block.type == BlockType::DIRT ||
-            block.type == BlockType::GRANITE ||
-            block.type == BlockType::STONE ||
-            block.type == BlockType::SAND ||
-            block.type == BlockType::SHOP ||
-            block.type == BlockType::LAVA) &&
-            shadowedBlocks.find(&block.shape) == shadowedBlocks.end())
-        {
-            auto shadowPolygon = calculateShadowPolygon(m_lightSource, block.shape, m_shadowDistance, m_playerLightRadius, sf::Vector2f(-5000,-5000), m_playerLightRadius);
-            if (!shadowPolygon.empty())
-            {
-                m_lightMapTexture.draw(&shadowPolygon[0], shadowPolygon.size(), sf::Quads, sf::BlendMultiply);
-            }
-        }
-    }
+	// To make shadows not be inside the other light sources
+	for (const auto& light : m_lightSources)
+	{
+		auto lightPolygon = calculateLightPolygon(light.position, light.radius, light.intensity, m_edges);
+		m_lightMapTexture.draw(&lightPolygon[0], lightPolygon.size(), sf::TrianglesFan, sf::BlendAdd);
+	}
 
 	m_lightMapTexture.display();
 }
@@ -1208,9 +1194,16 @@ void Game::showStats()
 	m_statsText.setPosition(m_endGameScreenBox.getPosition().x - m_statsText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y);
 }
 
-void Game::checkIfPlayerIsAlive()
+void Game::checkPlayerState()
 {
 	if (m_player.isPlayerAlive() == true) 
+	{
+		m_showEndGameScreen = true;
+		m_winOrLose = false;
+		showStats();
+	}
+
+	if (m_player.getPosition().y > SCREEN_HEIGHT + 100.0f)
 	{
 		m_showEndGameScreen = true;
 		m_winOrLose = false;

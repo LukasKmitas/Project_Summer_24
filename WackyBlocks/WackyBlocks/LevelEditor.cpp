@@ -29,6 +29,12 @@ void LevelEditor::render(sf::RenderWindow& m_window)
 {
     drawWorldGrid(m_window);
 
+    // placed blocks
+    for (const auto& block : m_mapBlocks)
+    {
+        m_window.draw(block.shape);
+    }
+
     if (m_isBlockSelected)
     {
         m_window.draw(m_ghostTile);
@@ -57,12 +63,6 @@ void LevelEditor::render(sf::RenderWindow& m_window)
     for (const auto& tile : m_sliderTileBlocks)
     {
         m_window.draw(tile);
-    }
-
-    // placed blocks
-    for (const auto& block : m_mapBlocks)
-    {
-        m_window.draw(block.shape);
     }
 
     // back button
@@ -521,14 +521,6 @@ void LevelEditor::initTileBlocks()
     m_sliderTile.setTexture(&m_sandTexture);
     m_sliderTileBlocks.push_back(m_sliderTile);
 
-    m_sliderTile.setFillColor(sf::Color(0, 0, 255));
-    m_sliderTile.setTexture(NULL);
-    m_sliderTileBlocks.push_back(m_sliderTile);
-
-    m_sliderTile.setFillColor(sf::Color(255, 70, 0));
-    m_sliderTile.setTexture(NULL);
-    m_sliderTileBlocks.push_back(m_sliderTile);
-
     setTileBlockPositions();
 }
 
@@ -684,8 +676,6 @@ void LevelEditor::updateTileBlocks()
         addTileBlock(&m_graniteTexture);
         addTileBlock(&m_stoneTexture);
         addTileBlock(&m_sandTexture);
-        addTileBlock(nullptr, sf::Color(0, 0, 255)); // Water
-        addTileBlock(nullptr, sf::Color(255, 69, 0)); // Lava
     }
     else if (m_currentTab == TabType::TRAPS)
     {
@@ -840,18 +830,6 @@ void LevelEditor::placeBlock(sf::Vector2f m_mousePos)
             newBlock.health = 60;
             newBlock.traversable = false;
             newBlock.damage = 15;
-            break;
-        case BlockType::WATER:
-            newBlock.shape.setFillColor(sf::Color(0, 0, 255));
-            newBlock.health = 100;
-            newBlock.traversable = true;
-            newBlock.damage = 0;
-            break;
-        case BlockType::LAVA:
-            newBlock.shape.setFillColor(sf::Color(255, 69, 0));
-            newBlock.health = 100;
-            newBlock.traversable = true;
-            newBlock.damage = 10;
             break;
         case BlockType::TRAP_SPIKE:
             newBlock.shape.setTexture(&m_spikeTexture);
@@ -1152,6 +1130,10 @@ void LevelEditor::handleKeyInput(sf::Event m_event)
     }
 }
 
+/// <summary>
+/// Saving as a Json file and to make it easy to read from the file
+/// </summary>
+/// <param name="m_fileName"> file name </param>
 void LevelEditor::saveToFile(const std::string& m_fileName)
 {
     std::string filePath = "Assets\\SaveFiles\\" + m_fileName + ".json";
@@ -1302,10 +1284,6 @@ sf::Vector2f LevelEditor::getBlockSize(BlockType type) const
         return small;
     case BlockType::SAND:
         return small;
-    case BlockType::WATER:
-        return small;
-    case BlockType::LAVA:
-        return small;
     case BlockType::TRAP_SPIKE:
         return small;
     case BlockType::TRAP_BARREL:
@@ -1348,8 +1326,6 @@ BlockType LevelEditor::getBlockTypeForCurrentTab(int m_index) const
         case 1: return BlockType::GRANITE;
         case 2: return BlockType::STONE;
         case 3: return BlockType::SAND;
-        case 4: return BlockType::WATER;
-        case 5: return BlockType::LAVA;
         default: return BlockType::NONE;
         }
     case TabType::TRAPS:

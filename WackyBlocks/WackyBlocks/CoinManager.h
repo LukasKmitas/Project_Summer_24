@@ -3,6 +3,7 @@
 #include <vector>
 #include "Coin.h"
 #include "Block.h"
+#include "SoundManager.h"
 
 class CoinManager
 {

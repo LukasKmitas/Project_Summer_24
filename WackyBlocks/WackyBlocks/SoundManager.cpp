@@ -1,6 +1,6 @@
 #include "SoundManager.h"
 
-SoundManager::SoundManager() : currentTrack("")
+SoundManager::SoundManager() : m_currentTrack("")
 {
 }
 
@@ -18,8 +18,8 @@ void SoundManager::loadSound(const std::string& m_name, const std::string& m_fil
     sf::SoundBuffer buffer;
     if (buffer.loadFromFile(m_filename))
     {
-        soundBuffers[m_name] = buffer;
-        sounds[m_name].setBuffer(soundBuffers[m_name]);
+        m_soundBuffers[m_name] = buffer;
+        m_sounds[m_name].setBuffer(m_soundBuffers[m_name]);
     }
 }
 
@@ -29,10 +29,10 @@ void SoundManager::loadSound(const std::string& m_name, const std::string& m_fil
 /// <param name="name"></param>
 void SoundManager::playSound(const std::string& m_name)
 {
-    if (sounds.find(m_name) != sounds.end())
+    if (m_sounds.find(m_name) != m_sounds.end())
     {
-        sounds[m_name].setVolume(globalSoundVolume);
-        sounds[m_name].play();
+        m_sounds[m_name].setVolume(m_globalSoundVolume);
+        m_sounds[m_name].play();
     }
 }
 
@@ -42,9 +42,9 @@ void SoundManager::playSound(const std::string& m_name)
 /// <param name="name"></param>
 void SoundManager::stopSound(const std::string& m_name)
 {
-    if (sounds.find(m_name) != sounds.end())
+    if (m_sounds.find(m_name) != m_sounds.end())
     {
-        sounds[m_name].stop();
+        m_sounds[m_name].stop();
     }
 }
 
@@ -55,9 +55,9 @@ void SoundManager::stopSound(const std::string& m_name)
 /// <param name="volume"></param>
 void SoundManager::setSoundVolume(const std::string& m_name, float m_volume)
 {
-    if (sounds.find(m_name) != sounds.end())
+    if (m_sounds.find(m_name) != m_sounds.end())
     {
-        sounds[m_name].setVolume(m_volume);
+        m_sounds[m_name].setVolume(m_volume);
     }
 }
 
@@ -67,8 +67,8 @@ void SoundManager::setSoundVolume(const std::string& m_name, float m_volume)
 /// <param name="volume"></param>
 void SoundManager::setGlobalSoundVolume(float m_volume)
 {
-    globalSoundVolume = m_volume;
-    for (auto& sound : sounds)
+    m_globalSoundVolume = m_volume;
+    for (auto& sound : m_sounds)
     {
         sound.second.setVolume(m_volume);
     }
@@ -84,7 +84,7 @@ void SoundManager::loadMusic(const std::string& m_name, const std::string& m_fil
     sf::Music* music = new sf::Music();
     if (music->openFromFile(m_filename))
     {
-        musics[m_name] = music;
+        m_musics[m_name] = music;
     }
 }
 
@@ -95,11 +95,11 @@ void SoundManager::loadMusic(const std::string& m_name, const std::string& m_fil
 /// <param name="loop"></param>
 void SoundManager::playMusic(const std::string& m_name, bool m_loop)
 {
-    auto it = musics.find(m_name);
-    if (it != musics.end())
+    auto it = m_musics.find(m_name);
+    if (it != m_musics.end())
     {
         it->second->setLoop(m_loop);
-        it->second->setVolume(globalMusicVolume);
+        it->second->setVolume(m_globalMusicVolume);
         it->second->play();
     }
 }
@@ -110,9 +110,9 @@ void SoundManager::playMusic(const std::string& m_name, bool m_loop)
 /// <param name="name"></param>
 void SoundManager::stopMusic(const std::string& m_name)
 {
-    if (musics.find(m_name) != musics.end())
+    if (m_musics.find(m_name) != m_musics.end())
     {
-        musics[m_name]->stop();
+        m_musics[m_name]->stop();
     }
 }
 
@@ -123,9 +123,9 @@ void SoundManager::stopMusic(const std::string& m_name)
 /// <param name="volume"></param>
 void SoundManager::setMusicVolume(const std::string& m_name, float m_volume)
 {
-    if (musics.find(m_name) != musics.end())
+    if (m_musics.find(m_name) != m_musics.end())
     {
-        musics[m_name]->setVolume(m_volume);
+        m_musics[m_name]->setVolume(m_volume);
     }
 }
 
@@ -135,8 +135,8 @@ void SoundManager::setMusicVolume(const std::string& m_name, float m_volume)
 /// <param name="volume"></param>
 void SoundManager::setGlobalMusicVolume(float m_volume)
 {
-    globalMusicVolume = m_volume;
-    for (auto& music : musics)
+    m_globalMusicVolume = m_volume;
+    for (auto& music : m_musics)
     {
         if (music.second != nullptr)
         {
@@ -151,9 +151,9 @@ void SoundManager::setGlobalMusicVolume(float m_volume)
 /// <param name="name"></param>
 void SoundManager::addToPlaylist(const std::string& m_name)
 {
-    if (musics.find(m_name) != musics.end())
+    if (m_musics.find(m_name) != m_musics.end())
     {
-        playlist.push(m_name);
+        m_playlist.push(m_name);
     }
 }
 
@@ -162,18 +162,18 @@ void SoundManager::addToPlaylist(const std::string& m_name)
 /// </summary>
 void SoundManager::playNextTrack()
 {
-    if (!playlist.empty())
+    if (!m_playlist.empty())
     {
-        if (!currentTrack.empty() && musics[currentTrack]->getStatus() == sf::Music::Playing)
+        if (!m_currentTrack.empty() && m_musics[m_currentTrack]->getStatus() == sf::Music::Playing)
         {
             return;
         }
 
-        currentTrack = playlist.front();
-        playlist.pop();
-        playlist.push(currentTrack);
+        m_currentTrack = m_playlist.front();
+        m_playlist.pop();
+        m_playlist.push(m_currentTrack);
 
-        playMusic(currentTrack, false);
+        playMusic(m_currentTrack, false);
     }
 }
 
@@ -182,7 +182,7 @@ void SoundManager::playNextTrack()
 /// </summary>
 void SoundManager::updateMusicTrack()
 {
-    if (!currentTrack.empty() && musics[currentTrack]->getStatus() != sf::Music::Playing)
+    if (!m_currentTrack.empty() && m_musics[m_currentTrack]->getStatus() != sf::Music::Playing)
     {
         playNextTrack();
     }
@@ -193,11 +193,11 @@ void SoundManager::updateMusicTrack()
 /// </summary>
 void SoundManager::stopAllMusic()
 {
-    for (auto& music : musics)
+    for (auto& music : m_musics)
     {
         music.second->stop();
     }
-    currentTrack = "";
+    m_currentTrack = "";
 }
 
 /// <summary>
@@ -205,11 +205,35 @@ void SoundManager::stopAllMusic()
 /// </summary>
 void SoundManager::loadAll()
 {
-    // Musics
+    // Music
     loadMusic("MenuMusic", "Assets\\Audio\\background1.ogg");
-    
+
+    // Playlist musics
+    loadMusic("gameplayMusic1", "Assets\\Audio\\temple.mp3");
+    loadMusic("gameplayMusic2", "Assets\\Audio\\magical_theme.mp3");
+    loadMusic("gameplayMusic3", "Assets\\Audio\\game_music.wav");
+    addToPlaylist("gameplayMusic1");
+    addToPlaylist("gameplayMusic2");
+    addToPlaylist("gameplayMusic3");
+
     // Sounds
+    // Menu sounds
     loadSound("buttonClick", "Assets\\Audio\\click07.mp3");
-    loadSound("pickup", "Assets\\Audio\\pickup.wav");
+
+    // Enemy sounds
+    loadSound("grenade", "Assets\\Audio\\grenade.ogg");
+
+    // Player sounds
+    loadSound("pickup_coin", "Assets\\Audio\\pickup_coin.wav");
     loadSound("jump", "Assets\\Audio\\jump.wav");
+    loadSound("pickup", "Assets\\Audio\\pickup.wav");
+    loadSound("swing1", "Assets\\Audio\\swing.wav");
+    loadSound("swing2", "Assets\\Audio\\swing2.wav");
+
+    // World/Trap sounds
+    loadSound("platform", "Assets\\Audio\\platform_crumble.wav");
+    loadSound("pickup_coin", "Assets\\Audio\\pickup_coin.wav");
+    loadSound("level_complete", "Assets\\Audio\\level_complete.wav");
+    loadSound("trapXplosion", "Assets\\Audio\\explosion07.wav");
+
 }

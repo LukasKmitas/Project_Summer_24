@@ -13,6 +13,9 @@ public:
         return instance;
     }
 
+    SoundManager();
+    ~SoundManager();
+
     // Sound only to play for a short amount of time like a ding etc.
     void loadSound(const std::string& m_name, const std::string& m_filename);
     void playSound(const std::string& m_name);
@@ -27,7 +30,7 @@ public:
     void setMusicVolume(const std::string& m_name, float m_volume);
     void setGlobalMusicVolume(float m_volume);
 
-    // Playlist music that plays forever and can have a playlist
+    // Playlist music that plays forever
     void addToPlaylist(const std::string& m_name);
     void playNextTrack();
     void updateMusicTrack();
@@ -35,18 +38,15 @@ public:
 
     void loadAll();
 
-    float globalSoundVolume = 100.0f;
-    float globalMusicVolume = 100.0f;
+    float m_globalSoundVolume = 100.0f;
+    float m_globalMusicVolume = 100.0f;
 
 private:
 
-    SoundManager();
-    ~SoundManager();
-
-    std::map<std::string, sf::SoundBuffer> soundBuffers;
-    std::map<std::string, sf::Sound> sounds;
-    std::map<std::string, sf::Music*> musics;
-    std::queue<std::string> playlist;
-    std::string currentTrack;
+    std::map<std::string, sf::SoundBuffer> m_soundBuffers;
+    std::map<std::string, sf::Sound> m_sounds;
+    std::map<std::string, sf::Music*> m_musics;
+    std::queue<std::string> m_playlist;
+    std::string m_currentTrack;
 
 };
