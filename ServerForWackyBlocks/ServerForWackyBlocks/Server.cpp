@@ -141,6 +141,8 @@ void Server::handleClient(sf::TcpSocket* m_client)
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             std::string sessionID;
+            //std::cout << request << std::endl;
+
             for (const auto& pair : m_sessions)
             {
                 if (pair.second.m_playerOneSocket == m_client)

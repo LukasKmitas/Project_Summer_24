@@ -47,10 +47,10 @@ public:
     Player();
     ~Player();
 
-    void update(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks);
+    void update(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks);
     void render(sf::RenderWindow& m_window);
+    
     void renderHealthUI(sf::RenderWindow& m_window);
-
     void setPosition(float m_x, float m_y);
     void setOtherPlayerColor();
     void setCurrentFrame(int m_frame);
@@ -93,24 +93,24 @@ private:
     std::vector<Bullet> m_bullets;
     std::vector<EnergyWave> m_energyWaves;
 
-    void handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks);
+    void handleInput(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks);
     void setupPlayer();
     void setupHealth();
     void setupAmmo();
-    void updateAnimation(sf::Time t_deltaTime);
+    void updateAnimation(sf::Time m_deltaTime);
     void loadTextures();
     void loadFrames();
     void updateBoundingBox();
-    void applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void applyGravity(sf::Time m_deltaTime, const std::vector<Block>& m_gameBlocks);
     void updateAnimationFrame();
     void updateHealthBar();
     void updateAmmoText();
-    void updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks);
+    void updateBullets(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks);
     void startFirstAttack();
     void startSecondAttack();
     void resetCombo();
     void launchEnergyWave();
-    void updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks);
+    void updateEnergyWaves(sf::Time m_deltaTime, const std::vector<Block>& m_gameBlocks);
     void refillAmmo(int m_ammoAmount);
     void updateOnAmmoPacks(std::vector<Block>& m_gameBlocks);
     void updateOnHealthPacks(std::vector<Block>& m_gameBlocks);

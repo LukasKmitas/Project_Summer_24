@@ -17,18 +17,18 @@ Player::~Player()
 }
 
 
-void Player::update(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
+void Player::update(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     if (!m_isAttacking)
     {
-        handleInput(t_deltaTime, m_gameBlocks);
-        applyGravity(t_deltaTime, m_gameBlocks);
+        handleInput(m_deltaTime, m_gameBlocks);
+        applyGravity(m_deltaTime, m_gameBlocks);
     }
-    updateAnimation(t_deltaTime);
+    updateAnimation(m_deltaTime);
     updateBoundingBox();
     updateHealthBar();
-    updateBullets(t_deltaTime, m_gameBlocks);
-    updateEnergyWaves(t_deltaTime, m_gameBlocks);
+    updateBullets(m_deltaTime, m_gameBlocks);
+    updateEnergyWaves(m_deltaTime, m_gameBlocks);
     updateOnAmmoPacks(m_gameBlocks);
     updateOnHealthPacks(m_gameBlocks);
 }
@@ -87,7 +87,6 @@ void Player::setState(PlayerState m_state)
     if (m_state != m_animationState)
     {
         m_animationState = m_state;
-        m_currentFrame = 0;
         updateAnimationFrame();
     }
 }
@@ -112,7 +111,7 @@ sf::RectangleShape& Player::getAttackCollisionBox()
     return m_attackCollisionBox;
 }
 
-void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
+void Player::handleInput(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     bool moving = false;
     sf::Vector2f movement(0.f, 0.f);
@@ -132,7 +131,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     // Reset combo if no input received within the first attack duration
     if (m_currentAttackState == AttackState::Attack1 && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
     {
-        m_comboElapsedTime += t_deltaTime;
+        m_comboElapsedTime += m_deltaTime;
         if (m_comboElapsedTime >= m_comboTimeWindow)
         {
             resetCombo();
@@ -142,7 +141,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     if (m_isKnockedBack)
     {
         float progress = m_knockbackElapsedTime.asSeconds() / m_knockbackDuration.asSeconds();
-        sf::Vector2f knockbackThisFrame = m_knockbackForce * (1.0f - progress) * t_deltaTime.asSeconds();
+        sf::Vector2f knockbackThisFrame = m_knockbackForce * (1.0f - progress) * m_deltaTime.asSeconds();
 
         sf::Vector2f newPosition = m_playerSprite.getPosition() + knockbackThisFrame;
 
@@ -172,7 +171,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
 
         m_playerSprite.setPosition(newPosition);
 
-        m_knockbackElapsedTime += t_deltaTime;
+        m_knockbackElapsedTime += m_deltaTime;
         if (m_knockbackElapsedTime >= m_knockbackDuration)
         {
             m_isKnockedBack = false;
@@ -211,7 +210,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
     {
-        movement.x -= m_speed * t_deltaTime.asSeconds();
+        movement.x -= m_speed * m_deltaTime.asSeconds();
         if (m_facingDirection)
         {
             m_facingDirection = false;
@@ -221,7 +220,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
     {
-        movement.x += m_speed * t_deltaTime.asSeconds();
+        movement.x += m_speed * m_deltaTime.asSeconds();
         if (!m_facingDirection)
         {
             m_facingDirection = true;
@@ -269,7 +268,7 @@ void Player::handleInput(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
     // Update jump timer
     if (m_firstJumpOn)
     {
-        m_jumpElapsedTime += t_deltaTime;
+        m_jumpElapsedTime += m_deltaTime;
         if (m_jumpElapsedTime >= m_doubleJumpDelay)
         {
             m_canDoubleJump = true;
@@ -363,13 +362,13 @@ void Player::setupAmmo()
     updateAmmoText();
 }
 
-void Player::updateAnimation(sf::Time t_deltaTime)
+void Player::updateAnimation(sf::Time m_deltaTime)
 {
-    m_currentFrameTime += t_deltaTime;
+    m_currentFrameTime += m_deltaTime;
 
     if (m_isAttacking || m_isAttacking2)
     {
-        m_attackElapsed += t_deltaTime;
+        m_attackElapsed += m_deltaTime;
 
         // Check for attack duration completion
         if (m_isAttacking && m_attackElapsed >= m_attackDuration)
@@ -535,16 +534,16 @@ void Player::updateBoundingBox()
     m_attackCollisionBox.setPosition(spritePos.x, spritePos.y + 5);
 }
 
-void Player::applyGravity(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+void Player::applyGravity(sf::Time m_deltaTime, const std::vector<Block>& m_gameBlocks)
 {
     if (m_isJumping || m_isFalling)
     {
         m_verticalSpeed += m_gravity;
         sf::Vector2f newPos = m_playerSprite.getPosition();
-        newPos.y += m_verticalSpeed * t_deltaTime.asSeconds();
+        newPos.y += m_verticalSpeed * m_deltaTime.asSeconds();
 
         sf::FloatRect newBounds = m_boundingBox.getGlobalBounds();
-        newBounds.top += m_verticalSpeed * t_deltaTime.asSeconds();
+        newBounds.top += m_verticalSpeed * m_deltaTime.asSeconds();
 
         bool collisionDetected = false;
         for (const auto& block : m_gameBlocks)
@@ -725,12 +724,12 @@ void Player::refillAmmo(int m_ammoAmount)
     updateAmmoText();
 }
 
-void Player::updateBullets(sf::Time t_deltaTime, std::vector<Block>& m_gameBlocks)
+void Player::updateBullets(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks)
 {
     for (auto bulletIt = m_bullets.begin(); bulletIt != m_bullets.end();)
     {
         Bullet& bullet = *bulletIt;
-        bullet.shape.move(bullet.direction * t_deltaTime.asSeconds());
+        bullet.shape.move(bullet.direction * m_deltaTime.asSeconds());
 
         bool collision = false;
         for (auto blockIt = m_gameBlocks.begin(); blockIt != m_gameBlocks.end();)
@@ -858,12 +857,12 @@ void Player::launchEnergyWave()
     }
 }
 
-void Player::updateEnergyWaves(sf::Time t_deltaTime, const std::vector<Block>& m_gameBlocks)
+void Player::updateEnergyWaves(sf::Time m_deltaTime, const std::vector<Block>& m_gameBlocks)
 {
     for (auto it = m_energyWaves.begin(); it != m_energyWaves.end();)
     {
-        it->sprite.move(it->direction * t_deltaTime.asSeconds());
-        it->elapsedTime += t_deltaTime;
+        it->sprite.move(it->direction * m_deltaTime.asSeconds());
+        it->elapsedTime += m_deltaTime;
 
         sf::FloatRect waveBounds = it->sprite.getGlobalBounds();
         for (const auto& block : m_gameBlocks)

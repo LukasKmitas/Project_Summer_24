@@ -1,5 +1,7 @@
 #include "Game.h"
 
+sf::IpAddress SERVER_IP;
+
 Game::Game() :
 	m_window{ sf::VideoMode{ SCREEN_WIDTH, SCREEN_HEIGHT, 32U }, "WackyBlocks" },
 	m_exitGame{false},
@@ -435,7 +437,6 @@ void Game::update(sf::Time t_deltaTime)
 			else if (m_currentMode == GameMode::MULTIPLAYER)
 			{
 				sendPlayerUpdate();
-
 				for (auto& enemy : m_enemies)
 				{
 					enemy->update(t_deltaTime, m_player);
@@ -1213,6 +1214,8 @@ void Game::checkPlayerState()
 
 void Game::initNetwork()
 {
+	SERVER_IP = sf::IpAddress::getLocalAddress();
+
 	if (m_socket->connect(SERVER_IP, PORT) == sf::Socket::Done)
 	{
 		std::cout << "Server connected" << std::endl;
@@ -1226,6 +1229,27 @@ void Game::initNetwork()
 			std::string clientID(buffer, received);
 			std::cout << "Received client ID: " << clientID << std::endl;
 			m_mainMenu.setClientID(clientID);
+		}
+	}
+	else if (m_socket->connect(SERVER_IP, PORT) != sf::Socket::Done)
+	{
+		// The SERVER_IP needs to be the same as the servers
+		// So you need to check the servers IP and it needs to be the same as the SERVER_IP
+		SERVER_IP = "192.168.0.197";
+		if (m_socket->connect(SERVER_IP, PORT) == sf::Socket::Done)
+		{
+			std::cout << "Server connected" << std::endl;
+			std::string request = "init";
+			m_socket->send(request.c_str(), request.size());
+
+			char buffer[2000];
+			std::size_t received;
+			if (m_socket->receive(buffer, sizeof(buffer), received) == sf::Socket::Done)
+			{
+				std::string clientID(buffer, received);
+				std::cout << "Received client ID: " << clientID << std::endl;
+				m_mainMenu.setClientID(clientID);
+			}
 		}
 	}
 	else
@@ -1267,7 +1291,8 @@ void Game::listenForServerMessages()
 					float y = std::stof(tokens[2]);
 					int currentFrame = std::stoi(tokens[3]);
 					PlayerState state = static_cast<PlayerState>(std::stoi(tokens[4]));
-
+					//std::cout << "position: " << x << " " << y << " frame: " << currentFrame << " state: " << static_cast<int>(state) << std::endl;
+					
 					if (currentFrame >= 0 && currentFrame < m_otherPlayer.getFrameCountForState(state))
 					{
 						m_otherPlayer.setPosition(x, y);
@@ -1337,7 +1362,10 @@ void Game::sendPlayerUpdate()
 	int currentFrame = m_player.getCurrentFrame();
 	PlayerState state = m_player.getState();
 
-	std::string playerInformation = "playerUpdate:" + std::to_string(position.x) + ":" + std::to_string(position.y) + ":" + std::to_string(currentFrame) + ":" + std::to_string(static_cast<int>(state));
+	std::string playerInformation = "playerUpdate:" + 
+		std::to_string(position.x) + ":" + std::to_string(position.y) + ":" + 
+		std::to_string(currentFrame) + ":" + 
+		std::to_string(static_cast<int>(state));
 	m_socket->send(playerInformation.c_str(), playerInformation.size());
 }
 
