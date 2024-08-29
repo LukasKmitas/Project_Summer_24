@@ -727,6 +727,11 @@ void MainMenu::loadLevelFiles()
     }
 }
 
+void MainMenu::resetMainMenu()
+{
+    m_selectedLevelIndex = -1;
+}
+
 void MainMenu::updateContinueButtonColor()
 {
     if (m_selectedLevelIndex != -1)

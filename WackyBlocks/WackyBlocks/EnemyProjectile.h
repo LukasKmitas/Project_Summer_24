@@ -12,7 +12,7 @@ public:
 
     EnemyProjectile(const sf::Vector2f& m_position, const sf::Vector2f& m_direction, const sf::Texture& m_texture, const std::vector<sf::IntRect>& m_frames);
 
-    void update(sf::Time m_deltaTime, const std::vector<Block>& blocks);
+    void update(sf::Time m_deltaTime, const std::vector<Block>& m_blocks);
     void render(sf::RenderWindow& m_window);
 
     bool checkCollisionWithPlayer(Player& m_player);

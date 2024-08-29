@@ -77,6 +77,7 @@ private:
 	void setupWinLoseScreens();
 	void showStats();
 	void checkPlayerState();
+	void resetEverything();
 
 	// Server stuff
 	void initNetwork();
@@ -167,9 +168,13 @@ private:
 	bool m_isListening;
 
 	// Win/Lose screens
-	sf::RectangleShape m_endGameScreenBox;
+	sf::RectangleShape m_endGamePanelBackground;
+	sf::RectangleShape m_endGamePanelLine;
+	sf::RectangleShape m_exitToMenuButton;
+	sf::Text m_exitToMenuButtonText;
 	sf::Text m_winText;
 	sf::Text m_loseText;
+	sf::Text m_statsTitleText;
 	sf::Text m_statsText;
 	int m_enemiesKilled = 0;
 	bool m_winOrLose = false;

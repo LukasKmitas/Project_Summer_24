@@ -25,6 +25,13 @@ enum class AttackState
     Attack2,
 };
 
+struct TrailParticle
+{
+    sf::Vector2f position;
+    sf::Time lifetime;
+    sf::Color color;
+};
+
 struct Bullet
 {
     sf::CircleShape shape;
@@ -50,28 +57,31 @@ public:
     void update(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks);
     void render(sf::RenderWindow& m_window);
     
-    void renderHealthUI(sf::RenderWindow& m_window);
+    // Server/multiplayer specific stuff 
     void setPosition(float m_x, float m_y);
     void setOtherPlayerColor();
     void setCurrentFrame(int m_frame);
     void setState(PlayerState m_state);
     void updateFacingDirection(float m_x);
+    void setCorrectTexture();
+
     void takeDamage(float m_amount);
     void heal(int m_amount);
     void shootBullet(const sf::Vector2f& m_target);
     void applyKnockback(const sf::Vector2f& m_force, sf::Time m_duration);
-
-    bool isNear(const sf::Vector2f& m_objectPosition) const;
+    void renderHealthUI(sf::RenderWindow& m_window);
     void upgradeHealth();
     void upgradeBullets();
     void upgradeAmmo();
     void upgradeDoubleJump();
     void upgradeEnergyWaveAttack();
     void resetAttackDamage();
+    void resetPlayer();
 
     int getCurrentFrame() const;
     int getFrameCountForState(PlayerState m_state) const;
     int getHealth() const;
+    bool isNear(const sf::Vector2f& m_objectPosition) const;
     bool isPlayerAlive() const;
     bool isAttacking() const;
     bool isAttacking2() const;
@@ -92,6 +102,7 @@ private:
     AttackState m_currentAttackState = AttackState::None;
     std::vector<Bullet> m_bullets;
     std::vector<EnergyWave> m_energyWaves;
+    std::vector<TrailParticle> m_bulletTrail;
 
     void handleInput(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks);
     void setupPlayer();
@@ -114,6 +125,8 @@ private:
     void refillAmmo(int m_ammoAmount);
     void updateOnAmmoPacks(std::vector<Block>& m_gameBlocks);
     void updateOnHealthPacks(std::vector<Block>& m_gameBlocks);
+    void updateBulletTrail(const sf::Vector2f& m_position);
+    void updateTrails(sf::Time m_deltaTime);
 
     sf::Sprite m_playerSprite;
     sf::RectangleShape m_boundingBox;

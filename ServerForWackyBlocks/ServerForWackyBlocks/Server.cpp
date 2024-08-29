@@ -67,6 +67,10 @@ void Server::handleConnections()
     }
 }
 
+/// <summary>
+/// This function handles the clients requests 
+/// </summary>
+/// <param name="m_client"></param>
 void Server::handleClient(sf::TcpSocket* m_client)
 {
     char buffer[128];
@@ -189,6 +193,10 @@ void Server::notifyServerOfNewHost(sf::TcpSocket* m_client)
     }
 }
 
+/// <summary>
+/// sends back all the avaible host sessions
+/// </summary>
+/// <param name="m_client"></param>
 void Server::sendAvailableSessions(sf::TcpSocket* m_client)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -223,6 +231,11 @@ void Server::sendAvailableSessions(sf::TcpSocket* m_client)
     m_client->send(sessions.c_str(), sessions.size());
 }
 
+/// <summary>
+/// lets the host know a player has joined its game
+/// </summary>
+/// <param name="m_hostID"></param>
+/// <param name="clientID"></param>
 void Server::notifyHostPlayerHasJoined(const std::string& m_hostID, const std::string& clientID)
 {
     auto it = m_sessions.find(m_hostID);
@@ -311,6 +324,10 @@ void Server::displayClientSessions()
     std::cout << "There are " << multiplayerGames << " multiplayer games being played currently." << std::endl;
 }
 
+/// <summary>
+/// generates a random ID to indentify whos who
+/// </summary>
+/// <returns></returns>
 std::string Server::generateRandomID()
 {
     const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

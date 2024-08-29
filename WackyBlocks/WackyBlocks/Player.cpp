@@ -31,6 +31,7 @@ void Player::update(sf::Time m_deltaTime, std::vector<Block>& m_gameBlocks)
     updateEnergyWaves(m_deltaTime, m_gameBlocks);
     updateOnAmmoPacks(m_gameBlocks);
     updateOnHealthPacks(m_gameBlocks);
+    updateTrails(m_deltaTime);
 }
 
 void Player::render(sf::RenderWindow& m_window)
@@ -39,6 +40,13 @@ void Player::render(sf::RenderWindow& m_window)
     m_window.draw(m_boundingBox);
     m_window.draw(m_groundBoundingBox);
     m_window.draw(m_attackCollisionBox);
+    for (const auto& trail : m_bulletTrail)
+    {
+        sf::CircleShape trailShape(3);
+        trailShape.setFillColor(trail.color);
+        trailShape.setPosition(trail.position);
+        m_window.draw(trailShape);
+    }
     for (const auto& bullet : m_bullets)
     {
         m_window.draw(bullet.shape);
@@ -87,6 +95,7 @@ void Player::setState(PlayerState m_state)
     if (m_state != m_animationState)
     {
         m_animationState = m_state;
+        setCorrectTexture();
         updateAnimationFrame();
     }
 }
@@ -730,6 +739,7 @@ void Player::updateBullets(sf::Time m_deltaTime, std::vector<Block>& m_gameBlock
     {
         Bullet& bullet = *bulletIt;
         bullet.shape.move(bullet.direction * m_deltaTime.asSeconds());
+        updateBulletTrail(bullet.shape.getPosition());
 
         bool collision = false;
         for (auto blockIt = m_gameBlocks.begin(); blockIt != m_gameBlocks.end();)
@@ -933,6 +943,45 @@ void Player::updateOnHealthPacks(std::vector<Block>& m_gameBlocks)
     }
 }
 
+void Player::updateBulletTrail(const sf::Vector2f& m_position)
+{
+    TrailParticle trail;
+    trail.position = m_position;
+    trail.lifetime = sf::seconds(0.3f);
+    trail.color = sf::Color(200, 200, 0, 255);
+
+    m_bulletTrail.push_back(trail);
+}
+
+void Player::updateTrails(sf::Time m_deltaTime)
+{
+    for (auto& trail : m_bulletTrail)
+    {
+        trail.lifetime -= m_deltaTime;
+
+        float alphaFactor = trail.lifetime.asSeconds() / 1.0f;
+        trail.color.a = static_cast<sf::Uint8>(255 * alphaFactor);
+    }
+
+    m_bulletTrail.erase( std::remove_if(m_bulletTrail.begin(), m_bulletTrail.end(),
+        [](const TrailParticle& trail) { return trail.lifetime <= sf::Time::Zero; }), m_bulletTrail.end());
+}
+
+void Player::resetPlayer()
+{
+    m_health = 100;
+    m_maxHealth = 100;
+    m_speed = 100.0f;
+    m_currentAmmo = 100;
+    m_totalAmmo = 100;
+    m_extraBulletCount = 0;
+    m_otherPlayerFacingDirection = 1;
+    m_secondaryHealthBarVisible = false;
+    m_doubleJumpUnlocked = false;
+    m_unlockedEnergyWaveAttack = false;
+    updateHealthBar();
+}
+
 void Player::updateFacingDirection(float m_x)
 {
     if (m_x < m_previousX) // Moving left
@@ -952,6 +1001,33 @@ void Player::updateFacingDirection(float m_x)
         }
     }
     m_previousX = m_x;
+}
+
+void Player::setCorrectTexture()
+{
+    switch (m_animationState)
+    {
+    case PlayerState::Idle:
+        m_playerSprite.setTexture(m_idleTexture);
+        break;
+    case PlayerState::Jumping:
+        m_playerSprite.setTexture(m_jumpTexture);
+        break;
+    case PlayerState::Running:
+        m_playerSprite.setTexture(m_runTexture);
+        break;
+    case PlayerState::Falling:
+        m_playerSprite.setTexture(m_fallingTexture);
+        break;
+    case PlayerState::Attacking:
+        m_playerSprite.setTexture(m_attackTexture);
+        break;
+    case PlayerState::Attacking2:
+        m_playerSprite.setTexture(m_attack2Texture);
+        break;
+    default:
+        break;
+    }
 }
 
 void Player::takeDamage(float m_amount)

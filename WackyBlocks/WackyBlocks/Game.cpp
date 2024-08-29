@@ -221,7 +221,13 @@ void Game::processEvents()
 				}
 				else if (m_currentState == GameState::GAMEPLAY)
 				{
-					if (m_shopOpen && m_scrollBarHandle.getGlobalBounds().contains(mousePos))
+					if (m_showEndGameScreen && m_exitToMenuButton.getGlobalBounds().contains(mousePos))
+					{
+						m_currentState = GameState::MAIN_MENU;
+						resetEverything();
+						SoundManager::getInstance().playMusic("MenuMusic", true);
+					}
+					else if (m_shopOpen && m_scrollBarHandle.getGlobalBounds().contains(mousePos))
 					{
 						m_isDraggingScrollBarHandle = true;
 						m_scrollBarHandleOffsetY = mousePos.y - m_scrollBarHandle.getPosition().y;
@@ -532,8 +538,12 @@ void Game::render()
 		}
 		if (m_showEndGameScreen)
 		{
-			m_window.draw(m_endGameScreenBox);
+			m_window.draw(m_endGamePanelBackground);
+			m_window.draw(m_endGamePanelLine);
+			m_window.draw(m_statsTitleText);
 			m_window.draw(m_statsText);
+			m_window.draw(m_exitToMenuButton);
+			m_window.draw(m_exitToMenuButtonText);
 			if (m_winOrLose)
 			{
 				m_window.draw(m_winText);
@@ -566,6 +576,7 @@ void Game::loadLevel(const std::string& m_fileName)
 {
 	m_gameBlocks.clear();
 	m_enemies.clear();
+	m_spikes.clear();
 
 	std::ifstream inputFile("Assets\\SaveFiles\\" + m_fileName);
 	if (!inputFile.is_open())
@@ -829,6 +840,12 @@ void Game::createLightMap()
 	}
 
 	m_lightMapTexture.display();
+
+	/*sf::Image lightmapImage = m_lightMapTexture.getTexture().copyToImage();
+	if (!lightmapImage.saveToFile("Assets\\Images\\lightmap.png"))
+	{
+		std::cout << "Error - cant save lightmap" << std::endl;
+	}*/
 }
 
 void Game::initLevelAssets()
@@ -915,10 +932,10 @@ void Game::initShop()
 		{"Double Jump", 80},
 		{"Energy Wave Attack", 200},
 		{"Extra bullet x1", 250},
-		{"Extra bullet x2", 250},
-		{"Small Shield", 130},
+		{"Extra bullet x2", 250}
 	};
 
+	// item descriptions
 	std::vector<std::string> descriptions = 
 	{
 		"Increases your health capacity",
@@ -926,8 +943,7 @@ void Game::initShop()
 		"Allows you to jump twice in the air",
 		"Releases a powerful energy wave\nfrom slash attacks",
 		"Gives a extra bullet when you fire",
-		"Gives a extra bullet when you fire",
-		"Grants a small shield for protection"
+		"Gives a extra bullet when you fire"
 	};
 
 	for (int i = 0; i < items.size(); ++i)
@@ -1159,29 +1175,56 @@ void Game::updateCoins(sf::Time m_deltaTime)
 
 void Game::setupWinLoseScreens()
 {
-	m_endGameScreenBox.setSize(sf::Vector2f(400, 300));
-	m_endGameScreenBox.setFillColor(sf::Color(0, 0, 0, 255));
-	m_endGameScreenBox.setOutlineColor(sf::Color::Magenta);
-	m_endGameScreenBox.setOutlineThickness(1);
-	m_endGameScreenBox.setOrigin(m_endGameScreenBox.getSize() / 2.0f);
-	m_endGameScreenBox.setPosition(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f);
+	m_endGamePanelBackground.setSize(sf::Vector2f(500, 500));
+	m_endGamePanelBackground.setFillColor(sf::Color(0, 0, 0, 255));
+	m_endGamePanelBackground.setOutlineColor(sf::Color::Magenta);
+	m_endGamePanelBackground.setOutlineThickness(1);
+	m_endGamePanelBackground.setOrigin(m_endGamePanelBackground.getSize() / 2.0f);
+	m_endGamePanelBackground.setPosition(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f);
+
+	m_endGamePanelLine.setSize(sf::Vector2f(500,5));
+	m_endGamePanelLine.setFillColor(sf::Color(255, 0, 0, 255));
+	m_endGamePanelLine.setOrigin(m_endGamePanelLine.getSize() / 2.0f);
+	m_endGamePanelLine.setPosition(m_window.getSize().x / 2.0f, m_window.getSize().y / 2.0f + 100);
 
 	m_winText.setFont(m_font);
 	m_winText.setString("You Win!");
 	m_winText.setCharacterSize(40);
+	m_winText.setStyle(sf::Text::Underlined);
 	m_winText.setFillColor(sf::Color::White);
-	m_winText.setPosition(m_endGameScreenBox.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y - 100);
+	m_winText.setPosition(m_endGamePanelBackground.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGamePanelBackground.getPosition().y - 230);
 
 	m_loseText.setFont(m_font);
 	m_loseText.setString("You Lose!");
 	m_loseText.setCharacterSize(40);
+	m_loseText.setStyle(sf::Text::Underlined);
 	m_loseText.setFillColor(sf::Color::White);
-	m_loseText.setPosition(m_endGameScreenBox.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y - 100);
+	m_loseText.setPosition(m_endGamePanelBackground.getPosition().x - m_loseText.getGlobalBounds().width / 2, m_endGamePanelBackground.getPosition().y - 230);
+
+	m_statsTitleText.setFont(m_font);
+	m_statsTitleText.setString("STATS");
+	m_statsTitleText.setCharacterSize(30);
+	m_statsTitleText.setFillColor(sf::Color::White);
+	m_statsTitleText.setPosition(m_window.getSize().x / 2, m_window.getSize().y / 2.0f - 150);
+	m_statsTitleText.setOrigin(m_statsTitleText.getGlobalBounds().width / 2, m_statsTitleText.getGlobalBounds().height / 2);
 
 	m_statsText.setFont(m_font);
-	m_statsText.setCharacterSize(30);
+	m_statsText.setCharacterSize(25);
 	m_statsText.setFillColor(sf::Color::White);
-	m_statsText.setPosition(m_endGameScreenBox.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y);
+	m_statsText.setPosition(m_endGamePanelBackground.getPosition().x - m_winText.getGlobalBounds().width / 2, m_endGamePanelBackground.getPosition().y - 100);
+
+	// Buttons
+
+	m_exitToMenuButton.setSize(sf::Vector2f(250.0f, 50.0f));
+	m_exitToMenuButton.setFillColor(sf::Color::Transparent);
+	m_exitToMenuButton.setOutlineColor(sf::Color::Red);
+	m_exitToMenuButton.setOutlineThickness(2.0f);
+	m_exitToMenuButton.setPosition(SCREEN_WIDTH / 2 - 100.0f, SCREEN_HEIGHT / 2 + 150.0f);
+
+	m_exitToMenuButtonText.setFont(m_font);
+	m_exitToMenuButtonText.setString("Exit to Menu");
+	m_exitToMenuButtonText.setFillColor(sf::Color::White);
+	m_exitToMenuButtonText.setPosition(m_exitToMenuButton.getPosition().x + 10.0f, m_exitToMenuButton.getPosition().y + 10.0f);
 }
 
 void Game::showStats()
@@ -1192,7 +1235,7 @@ void Game::showStats()
 	stats += "Currency: " + std::to_string(m_currency);
 
 	m_statsText.setString(stats);
-	m_statsText.setPosition(m_endGameScreenBox.getPosition().x - m_statsText.getGlobalBounds().width / 2, m_endGameScreenBox.getPosition().y);
+	m_statsText.setPosition(m_endGamePanelBackground.getPosition().x - m_statsText.getGlobalBounds().width / 2, m_endGamePanelBackground.getPosition().y - 100);
 }
 
 void Game::checkPlayerState()
@@ -1210,6 +1253,28 @@ void Game::checkPlayerState()
 		m_winOrLose = false;
 		showStats();
 	}
+}
+
+void Game::resetEverything()
+{
+	m_portalSprite.setPosition(-5000, -5000);
+	m_shopSprite.setPosition(-5000, -5000);
+	m_portalCurrentFrame = 0;
+	m_portalClock.restart();
+	m_showPortalText = false;
+	m_showEndGameScreen = false;
+	m_currency = 1000;
+	m_enemiesKilled = 0;
+	m_gameBlocks.clear();
+	m_enemies.clear();
+	m_spikes.clear();
+	m_lightSources.clear();
+	m_shopItems.clear();
+	initShop();
+	initLevelAssets();
+	m_player.resetPlayer();
+	m_mainMenu.resetMainMenu();
+	SoundManager::getInstance().stopAllMusic();
 }
 
 void Game::initNetwork()
@@ -1258,6 +1323,9 @@ void Game::initNetwork()
 	}
 }
 
+/// <summary>
+/// This listens for the server data 
+/// </summary>
 void Game::listenForServerMessages()
 {
 	m_isListening = true;
@@ -1348,6 +1416,9 @@ void Game::joinSession(const std::string& m_hostID)
 	m_listenThread = std::thread(&Game::listenForServerMessages, this);
 }
 
+/// <summary>
+/// Sends the levels name so the other player can join same level
+/// </summary>
 void Game::sendLevelToServer()
 {
 	std::string selectedLevel = m_mainMenu.getSelectedLevelFile();
@@ -1356,6 +1427,9 @@ void Game::sendLevelToServer()
 	loadLevel(selectedLevel); // this loads on the host side
 }
 
+/// <summary>
+/// function to detect the other players position
+/// </summary>
 void Game::sendPlayerUpdate()
 {
 	sf::Vector2f position = m_player.getPosition();

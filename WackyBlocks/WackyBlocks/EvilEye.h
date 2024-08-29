@@ -1,7 +1,6 @@
 #ifndef FLYINGEYE_H
 #define FLYINGEYE_H
 #pragma once
-
 #include "Enemy.h"
 #include "EnemyProjectile.h"
 

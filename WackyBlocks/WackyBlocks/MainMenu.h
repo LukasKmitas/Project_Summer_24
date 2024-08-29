@@ -49,6 +49,8 @@ public:
     void setPlayerJoined(bool m_joined);
     void loadLevelFiles();
 
+    void resetMainMenu();
+
     int getPressedItem() { return m_selectedItemIndex; }
     int handleClick(sf::Vector2f m_mousePos);
     

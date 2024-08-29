@@ -14,6 +14,14 @@ std::vector<Edge> calculateEdges(const std::vector<sf::RectangleShape>& m_shapes
     return edges;
 }
 
+/// <summary>
+/// creates a light around the position 
+/// </summary>
+/// <param name="m_lightPos"></param>
+/// <param name="m_lightRadius"></param>
+/// <param name="m_intensity"></param>
+/// <param name="m_edges"></param>
+/// <returns></returns>
 std::vector<sf::Vertex> calculateLightPolygon(const sf::Vector2f& m_lightPos, float m_lightRadius, float m_intensity, const std::vector<Edge>& m_edges)
 {
     std::vector<sf::Vertex> vertices;
@@ -72,6 +80,14 @@ std::vector<sf::Vertex> calculateLightPolygon(const sf::Vector2f& m_lightPos, fl
     return vertices;
 }
 
+/// <summary>
+/// casts shadows from blocks
+/// </summary>
+/// <param name="m_lightPos"></param>
+/// <param name="m_block"></param>
+/// <param name="m_shadowDistance"></param>
+/// <param name="m_lightRadius"></param>
+/// <returns></returns>
 std::vector<sf::Vertex> calculateShadowPolygon(const sf::Vector2f& m_lightPos, const sf::RectangleShape& m_block, float m_shadowDistance, float m_lightRadius)
 {
     std::vector<sf::Vertex> shadowVertices;

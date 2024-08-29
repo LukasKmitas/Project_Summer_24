@@ -15,7 +15,7 @@ EnemyProjectile::EnemyProjectile(const sf::Vector2f& m_position, const sf::Vecto
     m_collisionCircle.setPosition(m_position);
 }
 
-void EnemyProjectile::update(sf::Time m_deltaTime, const std::vector<Block>& blocks)
+void EnemyProjectile::update(sf::Time m_deltaTime, const std::vector<Block>& m_blocks)
 {
     if (!m_isDestroyed)
     {
@@ -26,7 +26,7 @@ void EnemyProjectile::update(sf::Time m_deltaTime, const std::vector<Block>& blo
             m_sprite.move(m_direction * m_speed * m_deltaTime.asSeconds());
             m_collisionCircle.setPosition(m_sprite.getPosition());
 
-            for (const auto& block : blocks)
+            for (const auto& block : m_blocks)
             {
                 if (!block.traversable && block.shape.getGlobalBounds().intersects(m_collisionCircle.getGlobalBounds()))
                 {
