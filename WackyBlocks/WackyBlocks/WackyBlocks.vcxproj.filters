@@ -196,4 +196,7 @@
       <Filter>Resource Files\ASSETS\FONTS</Filter>
     </Font>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
 </Project>
