@@ -47,6 +47,9 @@ void Server::run()
     }
 }
 
+/// <summary>
+/// If a new client is connected to the server it should let the user know and store it
+/// </summary>
 void Server::handleConnections()
 {
     while (m_running)
@@ -170,6 +173,10 @@ void Server::handleClient(sf::TcpSocket* m_client)
     }
 }
 
+/// <summary>
+/// lets the server know of a new host 
+/// </summary>
+/// <param name="m_client"></param>
 void Server::notifyServerOfNewHost(sf::TcpSocket* m_client)
 {
     std::lock_guard<std::mutex> lock(m_mutex);

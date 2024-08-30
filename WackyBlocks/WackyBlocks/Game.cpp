@@ -572,6 +572,10 @@ void Game::loadBackground()
 	);
 }
 
+/// <summary>
+/// Loads the level from the file any blocks and positions for other stuff
+/// </summary>
+/// <param name="m_fileName"></param>
 void Game::loadLevel(const std::string& m_fileName)
 {
 	m_gameBlocks.clear();
@@ -792,6 +796,9 @@ void Game::loadLevel(const std::string& m_fileName)
 	m_edges = calculateEdges(shapes);
 }
 
+/// <summary>
+/// Creates the light map texture
+/// </summary>
 void Game::createLightMap()
 {
 	m_lightMapTexture.clear(sf::Color::Black);
@@ -1084,6 +1091,9 @@ void Game::updateBlocks()
 	}
 }
 
+/// <summary>
+/// This is to update any collisions against the enemy this would be bullets, energy wave and slash attacks
+/// </summary>
 void Game::updatePlayerAttackCollisionsForEnemy()
 {
 	for (auto bulletIt = m_player.getBullets().begin(); bulletIt != m_player.getBullets().end();)
@@ -1272,6 +1282,10 @@ void Game::resetEverything()
 	SoundManager::getInstance().stopAllMusic();
 }
 
+/// <summary>
+/// To initialize the network when the game starts
+/// MUST start the server first
+/// </summary>
 void Game::initNetwork()
 {
 	SERVER_IP = sf::IpAddress::getLocalAddress();
