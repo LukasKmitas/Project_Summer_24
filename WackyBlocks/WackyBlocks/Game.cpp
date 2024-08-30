@@ -1113,16 +1113,11 @@ void Game::updatePlayerAttackCollisionsForEnemy()
 
 	for (auto& wave : m_player.getEnergyWaves())
 	{
-		if (wave.isDestroyed)
-		{
-			continue;
-		}
-
 		sf::FloatRect waveBounds = wave.sprite.getGlobalBounds();
 
 		for (auto& enemy : m_enemies)
 		{
-			if (waveBounds.intersects(enemy->getCollisionBoundingBox()))
+			if (!enemy->isDead() && waveBounds.intersects(enemy->getCollisionBoundingBox()))
 			{
 				enemy->takeDamage(6);
 				wave.isDestroyed = true;
@@ -1137,7 +1132,7 @@ void Game::updatePlayerAttackCollisionsForEnemy()
 
 		for (auto& enemy : m_enemies)
 		{
-			if (attackBox.intersects(enemy->getCollisionBoundingBox()))
+			if (!enemy->isDead() && attackBox.intersects(enemy->getCollisionBoundingBox()))
 			{
 				enemy->takeDamage(10);
 				m_player.m_hasDealtDamage = true;
@@ -1151,7 +1146,7 @@ void Game::updatePlayerAttackCollisionsForEnemy()
 
 		for (auto& enemy : m_enemies)
 		{
-			if (attackBox.intersects(enemy->getCollisionBoundingBox()))
+			if (!enemy->isDead() && attackBox.intersects(enemy->getCollisionBoundingBox()))
 			{
 				enemy->takeDamage(15);
 				m_player.m_hasDealtDamage = true;
